@@ -1,0 +1,14 @@
+# Generated or copied at build time
+dist
+agent-dist
+output
+licenses
+schema/theme-catalog.json
+src/core/theme-catalog.generated.json
+npm-shrinkwrap.json
+package-lock.json
+test-results
+playwright-report
+tmp
+# Prose is wrapped by hand
+*.md

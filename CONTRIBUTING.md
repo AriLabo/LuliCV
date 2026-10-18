@@ -11,6 +11,8 @@
 npm ci
 npm run dev          # 浏览器模式，打开 http://127.0.0.1:5173/
 npm test             # 单元测试和集成测试
+npm run lint         # ESLint
+npm run format       # 用 Prettier 统一格式；npm run format:check 只检查
 npm run build
 npm run test:e2e     # 先运行 npm run build：部分用例直接加载 dist/
 ```
@@ -27,6 +29,6 @@ npm run test:e2e     # 先运行 npm run build：部分用例直接加载 dist/
 
 ## 提交前
 
-- `npm test`、`npm run build`、`npm run test:e2e` 都能通过。
+- `npm test`、`npm run lint`、`npm run format:check`、`npm run build`、`npm run test:e2e` 都能通过。
 - 测试和示例只用虚构的姓名、电话、邮箱和经历。
 - 隐私或安全问题不要公开提 issue，见 [SECURITY.md](SECURITY.md)。

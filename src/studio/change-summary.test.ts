@@ -1,29 +1,117 @@
 import { expect, it } from 'vitest';
 import { normalizeDocument } from '../core/document';
 import { createResumeRecord } from './defaults';
-import { describePath, summarizePaths } from '../core/change-summary';
+import { formatChanges, listChanges, summarizeChanges } from '../core/change-summary';
+import type { ExperienceEntry, ResumeDocument } from '../core/types';
 
-it('describes agent patch paths in readable Chinese', () => {
-  const document = normalizeDocument(createResumeRecord());
-  expect(describePath(document, '/data/basics/headline')).toBe('基本信息 · 目标职位');
-  expect(describePath(document, '/data/sections/1/entries/0/bullets/1')).toBe('「工作经历」 · 「示例科技有限公司」 · 第 2 条要点');
-  expect(describePath(document, '/data/sections/1/entries/-')).toBe('「工作经历」 · 条目');
-  expect(describePath(document, '/appearance/themeId')).toBe('主题');
-  expect(describePath(document, '/appearance/css')).toBe('自定义样式');
-  expect(summarizePaths(document, ['/name', '/name', '/target', '/data/basics/email', '/data/basics/phone'])).toBe('简历名称、投递目标、基本信息 · 邮箱 等 4 处');
+const base = () => normalizeDocument(createResumeRecord());
+const edit = (document: ResumeDocument, change: (copy: ResumeDocument) => void) => {
+  const copy = structuredClone(document);
+  change(copy);
+  return copy;
+};
+
+it('describes edits in readable Chinese', () => {
+  const before = base();
+  const after = edit(before, (copy) => {
+    copy.data.basics.headline = '后端工程师';
+    (copy.data.sections[1].entries[0] as ExperienceEntry).bullets[1] = '改写后的成果';
+    copy.appearance.themeId = 'minimal';
+    copy.name = '新名字';
+  });
+  expect(summarizeChanges(before, after)).toEqual([
+    '简历名称',
+    '主题',
+    '基本信息 · 目标职位',
+    '「工作经历」 · 「示例科技有限公司」 · 第 2 条要点',
+  ]);
+  expect(
+    summarizeChanges(
+      before,
+      edit(before, (copy) => {
+        (copy.data.sections[1].entries[0] as ExperienceEntry).bullets.push('新增的成果');
+      }),
+    ),
+  ).toEqual(['「工作经历」 · 「示例科技有限公司」 · 要点']);
+  expect(formatChanges(['简历名称', '投递目标', '基本信息 · 邮箱', '基本信息 · 电话'])).toBe(
+    '简历名称、投递目标、基本信息 · 邮箱 等 4 处',
+  );
+  expect(formatChanges([])).toBe('');
+});
+
+it('names deleted sections and entries from the version before, and moves as a new order', () => {
+  const before = base();
+  // Removing the first section shifts every index; matching by id still names only what went away.
+  const withoutSummary = edit(before, (copy) => {
+    copy.data.sections.shift();
+  });
+  expect(summarizeChanges(before, withoutSummary)).toEqual(['「个人简介」栏目（已删除）']);
+  const withoutEntry = edit(before, (copy) => {
+    copy.data.sections[4].entries.shift();
+  });
+  expect(summarizeChanges(before, withoutEntry)).toEqual(['「专业技能」 · 「工程」（已删除）']);
+  const added = edit(before, (copy) => {
+    copy.data.sections.push({
+      id: 'awards',
+      type: 'custom',
+      title: '获奖情况',
+      visible: true,
+      layout: { pageBreakBefore: false },
+      entries: [],
+    });
+  });
+  expect(summarizeChanges(before, added)).toEqual(['「获奖情况」栏目（新增）']);
+  const moved = edit(before, (copy) => {
+    copy.data.sections.splice(1, 2, copy.data.sections[2], copy.data.sections[1]);
+    copy.data.sections[4].entries.reverse();
+  });
+  expect(summarizeChanges(before, moved)).toEqual(['「专业技能」 · 条目顺序', '栏目顺序']);
+  const renamed = edit(before, (copy) => {
+    copy.data.sections[1].title = '实习经历';
+  });
+  expect(summarizeChanges(before, renamed)).toEqual(['「工作经历」 · 标题（改为「实习经历」）']);
+});
+
+it('reads each change from any version by id, not by position', () => {
+  const before = base();
+  const after = edit(before, (copy) => {
+    copy.data.sections.shift();
+    copy.data.sections[3].entries.reverse();
+  });
+  const [deleted, moved] = listChanges(before, after);
+  // The deleted section is found in the version that has it and is absent from the one that does not.
+  expect(deleted.pick(before)).toEqual(before.data.sections[0]);
+  expect(deleted.pick(after)).toBeUndefined();
+  // The entry order is read from the section's own id, wherever that section now sits.
+  expect(moved.pick(after)).toEqual(after.data.sections[3].entries.map((entry) => entry.id));
+  expect(moved.pick(before)).toEqual(before.data.sections[4].entries.map((entry) => entry.id));
 });
 
 it('groups consecutive autosaves from one person but keeps each agent commit separate', async () => {
   const { groupRevisions } = await import('./ChangeHistory');
   const minute = 60_000;
+  const revision = (number: number, source: string, at: number, changes: string[]) => ({
+    revision: number,
+    source,
+    createdAt: at * minute,
+    created: number === 1,
+    changes,
+  });
   const groups = groupRevisions([
-    { revision: 6, source: 'agent', createdAt: 10 * minute, paths: ['/data/basics/headline'] },
-    { revision: 5, source: 'agent', createdAt: 9.9 * minute, paths: ['/name'] },
-    { revision: 4, source: 'human', createdAt: 9 * minute, paths: ['/data/basics/name'] },
-    { revision: 3, source: 'human', createdAt: 8 * minute, paths: ['/data/basics/name', '/data/basics/email'] },
-    { revision: 2, source: 'human', createdAt: 1 * minute, paths: ['/data/basics/phone'] },
-    { revision: 1, source: 'human', createdAt: 0.5 * minute, paths: ['/'] },
+    revision(6, 'agent', 10, ['基本信息 · 目标职位']),
+    revision(5, 'agent', 9.9, ['简历名称']),
+    revision(4, 'human', 9, ['基本信息 · 姓名']),
+    revision(3, 'human', 8, ['基本信息 · 姓名', '基本信息 · 邮箱']),
+    revision(2, 'human', 1, ['基本信息 · 电话']),
+    revision(1, 'human', 0.5, []),
   ]);
-  expect(groups.map((group) => [group.source, group.from, group.to, group.count])).toEqual([['agent', 6, 6, 1], ['agent', 5, 5, 1], ['human', 3, 4, 2], ['human', 2, 2, 1], ['human', 1, 1, 1]]);
-  expect(groups[2].paths).toEqual(['/data/basics/name', '/data/basics/email']);
+  expect(groups.map((group) => [group.source, group.from, group.to, group.count])).toEqual([
+    ['agent', 6, 6, 1],
+    ['agent', 5, 5, 1],
+    ['human', 3, 4, 2],
+    ['human', 2, 2, 1],
+    ['human', 1, 1, 1],
+  ]);
+  expect(groups[2].changes).toEqual(['基本信息 · 姓名', '基本信息 · 邮箱']);
+  expect(groups[4].created).toBe(true);
 });

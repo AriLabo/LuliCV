@@ -1,6 +1,6 @@
 # Installation
 
-The Skill and the runtime are two parts of one release: the Skill tells you how to work, and the runtime holds the CLI, the Bridge and the editor. They pair by version (`scripts/release.json`), and `cvslate` answers `RUNTIME_MISSING` until the runtime of this version is installed.
+The Skill and the runtime are two parts of one release: the Skill tells you how to work, and the runtime holds the CLI, the Bridge and the editor. They pair by version (`scripts/release.json`), and `cvslate` answers `RUNTIME_MISSING` until the runtime of this version is installed. To use another version, install that version's Skill too: editing `release.json` instead leaves this Skill's instructions driving a runtime they were not written for.
 
 Before installing, tell the user in a sentence or two what will happen: CVSlate <version> is downloaded from their npm registry (about 40 MB) into their user data directory, their system Node and PATH stay unchanged, and it usually takes under a minute. A request to install or use this Skill covers this download; if the user only wanted to look at the Skill, ask first. Then run:
 
@@ -10,7 +10,7 @@ node "<skill-dir>/scripts/install-runtime.mjs"
 
 The installer runs on any Node 18+. It installs `@arilabo/cvslate@<version>` with the user's own npm configuration, so a user in mainland China whose npm uses npmmirror gets it from there; the package pins every dependency's integrity. It keeps using the Node that runs it (often the agent client's own) when that Node's SQLite is new enough, and only otherwise downloads a Node of its own and checks its hash. Running it again reports `alreadyInstalled`. When it finishes it runs `cvslate doctor` and includes the report as `doctor`.
 
-If npm cannot find this version, a registry mirror may not have caught up with a new release yet; retrying after a few minutes usually works. When the user provides `arilabo-cvslate-<version>.tgz` (a pre-release build), install that instead with `--package "<tgz path>"`; a package of another version is refused. If Node is missing, tell the user. If the installer fails, report its message; its checks protect the user's machine, so do not bypass them.
+If npm cannot find this version, a registry mirror may not have caught up with a new release yet; retrying after a few minutes usually works. When the user provides `arilabo-cvslate-<version>.tgz` (a pre-release build), install that instead with `--package "<tgz path>"`; a package of another version is refused. A pre-release build comes with `cvslate-skill-<version>.zip` of the same version, which is the Skill to install with it. If Node is missing, tell the user. If the installer fails, report its message; its checks protect the user's machine, so do not bypass them.
 
 Then run each of these as its own command. The workspace needs no setup: the first command that uses it creates it in the same data directory.
 

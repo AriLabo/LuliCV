@@ -15,7 +15,11 @@ export const LONG_LINK_ADDRESS = 40;
 
 /** A web address as a resume prints it: no scheme, www or trailing slash; the link itself keeps the full address. */
 export function shortUrl(value: string): string {
-  return value.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+  return value
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./i, '')
+    .replace(/\/+$/, '');
 }
 
 /**
@@ -58,9 +62,15 @@ const PRESET_CODES: Record<string, string> = { 个人网站: 'WEB', 作品集: '
 
 /** The platform whose site an address is on, by host name: www.xiaohongshu.com and xhslink.com are both 小红书. */
 export function sitePlatform(url: string): LinkPlatform | undefined {
-  const host = url.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '').split(/[/?#:]/)[0].toLowerCase();
+  const host = url
+    .trim()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+    .split(/[/?#:]/)[0]
+    .toLowerCase();
   if (!host) return undefined;
-  return (Object.keys(PLATFORMS) as LinkPlatform[]).find((id) => PLATFORMS[id].hosts.some((site) => host === site || host.endsWith(`.${site}`)));
+  return (Object.keys(PLATFORMS) as LinkPlatform[]).find((id) =>
+    PLATFORMS[id].hosts.some((site) => host === site || host.endsWith(`.${site}`)),
+  );
 }
 
 /**
@@ -80,7 +90,7 @@ export function linkIcon(link: LinkItem, platform = linkPlatform(link)): LinkIco
 
 /** The code the editorial theme prints before a link: its platform's, a preset's, or LINK. */
 export function linkCode(link: LinkItem, platform = linkPlatform(link)): string {
-  return platform ? PLATFORMS[platform].code : PRESET_CODES[link.label.trim()] ?? 'LINK';
+  return platform ? PLATFORMS[platform].code : (PRESET_CODES[link.label.trim()] ?? 'LINK');
 }
 
 /** How the editor names an icon: 小红书, 地球. */

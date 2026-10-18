@@ -1,20 +1,23 @@
 # 本地 stdio MCP
 
-多数 Agent 都能执行命令，推荐优先使用 CLI（见 [Skill](../skills/cvslate/SKILL.md)）；MCP 仅在客户端不能执行命令时使用。适配器只通过 HTTP 连接 Bridge，要求 Node 20 或更新版本，可使用客户端自带的 Node。
+多数 Agent 都能执行命令，推荐优先使用 CLI（见 [Skill](../skills/cvslate/SKILL.md)）；MCP 仅在客户端不能执行命令时使用。适配器只通过 HTTP 连接 Bridge。
 
 MCP 是 Bridge 的客户端，不打开 SQLite，也不停止 Bridge；Bridge 没运行时，它像 CLI 一样在后台启动一个。运行时按 Skill 的[安装说明](../skills/cvslate/references/install.md)安装。
 
-标准本地 stdio 配置示例，客户端具体入口和外层字段可能不同：
+标准本地 stdio 配置示例，和 Skill 的 [MCP 配置说明](../skills/cvslate/references/mcp-client.md)一致；客户端具体入口和外层字段可能不同，路径要写绝对路径：
 
 ```json
 {
   "mcpServers": {
     "cvslate": {
-      "command": "cvslate-mcp"
+      "command": "node",
+      "args": ["<Skill 目录的绝对路径>/scripts/cvslate.mjs", "mcp"]
     }
   }
 }
 ```
+
+`scripts/cvslate.mjs` 在 Node 18 或更新版本上都能运行，它再用安装运行时时选定的 Node（22.22.3 或更新）启动 MCP 服务，和 CLI 走同一条路。用 `npm install -g` 直接装了运行时包的开发环境，也可以把 `command` 写成 `cvslate-mcp`。
 
 目前的实测都走 CLI，还没有在真实客户端里完整走过 MCP。GUI 应用的 PATH 和 Windows 的 `.cmd` 启动器都要在客户端里实测；不要把协议级 SDK 测试当作实机兼容证据。
 
@@ -43,6 +46,6 @@ MCP 是 Bridge 的客户端，不打开 SQLite，也不停止 Bridge；Bridge �
 
 隐私模式下 `filename` 可省略：导出请求先发到网页，由用户批准，PDF 由用户的浏览器下载，工具只返回 `{status: "approved", pages, delivered: "browser"}`，拿不到文件和路径。工具最多等 50 秒；用户还没处理时返回 `{status: "pending", requestId}`，用相同 id、revision 加 `requestId` 再调用继续等，请求 5 分钟后自动取消。没有打开的网页时返回 `webOpen: false`，请用户打开网页。用户拒绝或超时报 `EXPORT_DECLINED`；已有别的请求在等时报 `EXPORT_PENDING`。请求之后简历又被保存过，网页不能批准，需拒绝后重新 inspect 再请求。
 
-重新构建后先 stop，下一次调用会用新的构建启动 Bridge。首版不提供远程 HTTP MCP、云端认证、客户端自动配置或完整版本历史 UI。
+重新构建后先 stop，下一次调用会用新的构建启动 Bridge。MCP 不提供远程 HTTP 服务、云端认证或客户端自动配置；修订记录只在网页里查看，MCP 没有对应工具。
 
 验收使用官方 TypeScript MCP SDK 客户端与真实 stdio 子进程，覆盖双客户端共享、重启、幂等、冲突、非法路径及实际中文 PDF。参考：[官方 TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)。

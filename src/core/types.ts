@@ -33,19 +33,43 @@ export interface BasicInformation {
   yearsOfExperience?: string;
 }
 
-export interface EntryBase { id: string; bullets: string[] }
+export interface EntryBase {
+  id: string;
+  bullets: string[];
+}
 export interface ExperienceEntry extends EntryBase {
-  company: string; role: string; location: string; startDate: string; endDate: string; description: string;
+  company: string;
+  role: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  description: string;
 }
 export interface ProjectEntry extends EntryBase {
-  name: string; subtitle: string; date: string; link: string; description: string;
+  name: string;
+  subtitle: string;
+  date: string;
+  link: string;
+  description: string;
 }
 export interface EducationEntry extends EntryBase {
-  school: string; degree: string; major: string; date: string; additional: string;
+  school: string;
+  degree: string;
+  major: string;
+  date: string;
+  additional: string;
 }
-export interface SkillEntry { id: string; category: string; items: string[] }
+export interface SkillEntry {
+  id: string;
+  category: string;
+  items: string[];
+}
 export interface CustomEntry extends EntryBase {
-  title: string; subtitle: string; date: string; link: string; description: string;
+  title: string;
+  subtitle: string;
+  date: string;
+  link: string;
+  description: string;
 }
 export type ResumeEntry = ExperienceEntry | ProjectEntry | EducationEntry | SkillEntry | CustomEntry;
 
@@ -97,10 +121,15 @@ export interface Appearance {
 
 /** The job a tailored resume is written for. Document metadata, never resume content. */
 export interface ResumeTarget {
-  company: string; role: string; jd: string;
+  company: string;
+  role: string;
+  jd: string;
 }
 /** The resume this one was duplicated from, recorded by the repository. */
-export interface ResumeSource { id: string; revision: number }
+export interface ResumeSource {
+  id: string;
+  revision: number;
+}
 
 export interface ResumeRecord {
   id: string;
@@ -132,4 +161,7 @@ export interface DocumentWorkspace {
   activeId: string;
   resumes: ResumeDocument[];
 }
-export interface ValidationReport { errors: string[]; warnings: string[] }
+export interface ValidationReport {
+  errors: string[];
+  warnings: string[];
+}

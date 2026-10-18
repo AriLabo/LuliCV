@@ -1,7 +1,7 @@
 /* Bundled fonts available to every theme. All files ship with the app; none is fetched remotely. */
 @font-face {
-  font-family: "LXGW Neo XiHei Local";
-  src: url("../assets/fonts/LXGWNeoXiHei-v1.305.ttf") format("truetype");
+  font-family: 'LXGW Neo XiHei Local';
+  src: url('../assets/fonts/LXGWNeoXiHei-v1.305.ttf') format('truetype');
   font-style: normal;
   font-weight: 400;
   font-display: block;

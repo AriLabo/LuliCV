@@ -1,53 +1,213 @@
 /* 标准 · engine 1. Rules are nested inside .rs-theme--standard when loaded; settings appear as &.rs-set-… on the root. */
 color: #202124;
-font-family: var(--rs-font-family, "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif);
+font-family: var(
+  --rs-font-family,
+  'Noto Sans SC',
+  -apple-system,
+  BlinkMacSystemFont,
+  'PingFang SC',
+  'Microsoft YaHei',
+  sans-serif
+);
 font-size: var(--rs-font-size);
 line-height: var(--rs-line-height);
 
-.rs-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18pt; padding-bottom: 10pt; }
-.rs-identity { min-width: 0; flex: 1; }
-.rs-name { margin: 0; color: #1d1f23; font-size: 25pt; font-weight: 700; letter-spacing: -.4pt; line-height: 1.08; }
-.rs-headline { margin: 5pt 0 0; color: var(--rs-accent); font-size: 10.5pt; font-weight: 500; }
-.rs-contacts { display: flex; flex-wrap: wrap; gap: 2pt 10pt; margin-top: 7pt; color: #535861; font-size: 8.5pt; }
-.rs-details { margin-top: 3pt; color: #535861; font-size: 8.5pt; }
-a.rs-contact { border-bottom: .3pt solid #bdc2cb; }
-.rs-photo { width: 24mm; height: 31mm; flex: 0 0 auto; border-radius: 2pt; object-fit: cover; }
+.rs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18pt;
+  padding-bottom: 10pt;
+}
+.rs-identity {
+  min-width: 0;
+  flex: 1;
+}
+.rs-name {
+  margin: 0;
+  color: #1d1f23;
+  font-size: 25pt;
+  font-weight: 700;
+  letter-spacing: -0.4pt;
+  line-height: 1.08;
+}
+.rs-headline {
+  margin: 5pt 0 0;
+  color: var(--rs-accent);
+  font-size: 10.5pt;
+  font-weight: 500;
+}
+.rs-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2pt 10pt;
+  margin-top: 7pt;
+  color: #535861;
+  font-size: 8.5pt;
+}
+.rs-details {
+  margin-top: 3pt;
+  color: #535861;
+  font-size: 8.5pt;
+}
+a.rs-contact {
+  border-bottom: 0.3pt solid #bdc2cb;
+}
+.rs-photo {
+  width: 24mm;
+  height: 31mm;
+  flex: 0 0 auto;
+  border-radius: 2pt;
+  object-fit: cover;
+}
 
-.rs-section-title { display: flex; align-items: baseline; gap: 6pt; padding-top: var(--rs-section-space); padding-bottom: 4pt; }
-.rs-section-title h2 { margin: 0; color: var(--rs-accent); font-size: 13.5pt; font-weight: 700; line-height: 1.05; }
-.rs-section-rule { height: .65pt; flex: 1; background: #32363c; }
+.rs-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6pt;
+  padding-top: var(--rs-section-space);
+  padding-bottom: 4pt;
+}
+.rs-section-title h2 {
+  margin: 0;
+  color: var(--rs-accent);
+  font-size: 13.5pt;
+  font-weight: 700;
+  line-height: 1.05;
+}
+.rs-section-rule {
+  height: 0.65pt;
+  flex: 1;
+  background: #32363c;
+}
 
-.rs-entry-head { display: flex; justify-content: space-between; gap: 12pt; padding-bottom: 2pt; }
-.rs-entry-main { display: flex; min-width: 0; flex-direction: column; }
-.rs-entry-title { font-size: 10.5pt; font-weight: 700; line-height: 1.25; }
-.rs-entry-subtitle { color: #4d5259; font-size: 9pt; }
-.rs-entry-meta { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; color: #626771; font-size: 8.6pt; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rs-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12pt;
+  padding-bottom: 2pt;
+}
+.rs-entry-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.rs-entry-title {
+  font-size: 10.5pt;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.rs-entry-subtitle {
+  color: #4d5259;
+  font-size: 9pt;
+}
+.rs-entry-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #626771;
+  font-size: 8.6pt;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
-.rs-summary, .rs-description { padding-bottom: 3pt; color: #41464d; }
-.rs-bullet { display: flex; gap: 5pt; padding-bottom: 1.7pt; }
-.rs-bullet-mark { color: var(--rs-accent); font-weight: 700; }
-.rs-bullet p { flex: 1; }
-.rs-skill { display: grid; grid-template-columns: 72pt 1fr; gap: 8pt; padding-bottom: 2pt; }
-.rs-skill-category { text-align: right; }
+.rs-summary,
+.rs-description {
+  padding-bottom: 3pt;
+  color: #41464d;
+}
+.rs-bullet {
+  display: flex;
+  gap: 5pt;
+  padding-bottom: 1.7pt;
+}
+.rs-bullet-mark {
+  color: var(--rs-accent);
+  font-weight: 700;
+}
+.rs-bullet p {
+  flex: 1;
+}
+.rs-skill {
+  display: grid;
+  grid-template-columns: 72pt 1fr;
+  gap: 8pt;
+  padding-bottom: 2pt;
+}
+.rs-skill-category {
+  text-align: right;
+}
 
 /* Centered header: a tighter name block; plain contacts share the details line's "|" style; a smaller photo top-right. */
-&.rs-set-header-center .rs-header { position: relative; justify-content: center; text-align: center; }
-&.rs-set-header-center .rs-name { font-size: 22pt; }
-&.rs-set-header-center .rs-headline { margin-top: 3pt; font-size: 10pt; }
-&.rs-set-header-center .rs-contacts { justify-content: center; margin-top: 6pt; }
-&.rs-set-header-center .rs-details { margin-top: 2pt; }
-&.rs-set-header-center:not(.rs-set-contacts-icons) .rs-contacts { gap: 2pt 0; }
-&.rs-set-header-center:not(.rs-set-contacts-icons) a.rs-contact { border-bottom: 0; }
-&.rs-set-header-center:not(.rs-set-contacts-icons) .rs-contact + .rs-contact::before { margin: 0 .5em; opacity: .4; content: "|"; }
-&.rs-set-header-center .rs-header--photo { min-height: calc(25mm + 10pt); padding: 0 24mm 10pt; }
-&.rs-set-header-center .rs-photo { position: absolute; top: 0; right: 0; width: 19mm; height: 25mm; }
+&.rs-set-header-center .rs-header {
+  position: relative;
+  justify-content: center;
+  text-align: center;
+}
+&.rs-set-header-center .rs-name {
+  font-size: 22pt;
+}
+&.rs-set-header-center .rs-headline {
+  margin-top: 3pt;
+  font-size: 10pt;
+}
+&.rs-set-header-center .rs-contacts {
+  justify-content: center;
+  margin-top: 6pt;
+}
+&.rs-set-header-center .rs-details {
+  margin-top: 2pt;
+}
+&.rs-set-header-center:not(.rs-set-contacts-icons) .rs-contacts {
+  gap: 2pt 0;
+}
+&.rs-set-header-center:not(.rs-set-contacts-icons) a.rs-contact {
+  border-bottom: 0;
+}
+&.rs-set-header-center:not(.rs-set-contacts-icons) .rs-contact + .rs-contact::before {
+  margin: 0 0.5em;
+  opacity: 0.4;
+  content: '|';
+}
+&.rs-set-header-center .rs-header--photo {
+  min-height: calc(25mm + 10pt);
+  padding: 0 24mm 10pt;
+}
+&.rs-set-header-center .rs-photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 19mm;
+  height: 25mm;
+}
 
 /* 联系方式带图标：图标用强调色，去掉下划线。 */
-&.rs-set-contacts-icons .rs-contacts { gap: 2pt 12pt; }
-&.rs-set-contacts-icons a.rs-contact { border-bottom: 0; }
-&.rs-set-contacts-icons .rs-contact { display: inline-flex; align-items: center; gap: 3pt; }
+&.rs-set-contacts-icons .rs-contacts {
+  gap: 2pt 12pt;
+}
+&.rs-set-contacts-icons a.rs-contact {
+  border-bottom: 0;
+}
+&.rs-set-contacts-icons .rs-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 3pt;
+}
 /* Centred on the line box, an icon sits above the text, whose glyphs lie low in it; .08em brings it level. */
-&.rs-set-contacts-icons .rs-contact-icon { position: relative; top: .08em; display: inline-block; width: 8pt; height: 8pt; flex: 0 0 auto; color: var(--rs-accent); }
+&.rs-set-contacts-icons .rs-contact-icon {
+  position: relative;
+  top: 0.08em;
+  display: inline-block;
+  width: 8pt;
+  height: 8pt;
+  flex: 0 0 auto;
+  color: var(--rs-accent);
+}
 
-&.rs-set-rule-short .rs-section-rule { flex: 0 0 18pt; }
-&.rs-set-rule-none .rs-section-rule { display: none; }
+&.rs-set-rule-short .rs-section-rule {
+  flex: 0 0 18pt;
+}
+&.rs-set-rule-none .rs-section-rule {
+  display: none;
+}

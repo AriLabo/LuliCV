@@ -10,19 +10,27 @@ it('rejects reserved filenames before filesystem writes and preserves existing o
   try {
     for (const name of ['CON.pdf', 'con .pdf', 'LPT1.pdf', 'a:b.pdf', 'a?.pdf', 'a*.pdf', 'a|b.pdf', 'a.pdf ']) {
       expect(isPortableFilename(name)).toBe(false);
-      await expect(writeOutput(root, path.join(root, name), Buffer.from('fixture'))).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+      await expect(writeOutput(root, path.join(root, name), Buffer.from('fixture'))).rejects.toMatchObject({
+        code: 'VALIDATION_FAILED',
+      });
     }
     expect(isPortableFilename('..')).toBe(false);
     expect(await readdir(root)).toEqual([]);
     await writeOutput(root, path.join(root, '中文 简历.pdf'), Buffer.from('fixture'));
-    await expect(writeOutput(root, path.join(root, '中文 简历.pdf'), Buffer.from('overwrite'))).rejects.toMatchObject({ code: 'VALIDATION_FAILED', message: expect.stringContaining('已存在') });
-  } finally { await rm(root, { recursive: true, force: true }); }
+    await expect(writeOutput(root, path.join(root, '中文 简历.pdf'), Buffer.from('overwrite'))).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      message: expect.stringContaining('已存在'),
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 it('opens only verified loopback URLs as separate executable arguments', () => {
   const url = 'http://127.0.0.1:1234/#token=' + 'a'.repeat(64);
   expect(browserCommand(url, 'win32').args).toEqual(['url.dll,FileProtocolHandler', url]);
   for (const platform of ['darwin', 'linux'] as const) expect(browserCommand(url, platform).args).toEqual([url]);
-  for (const bad of ['https://example.com', 'javascript:alert(1)', 'http://secret@127.0.0.1:1234']) expect(() => browserCommand(bad, 'win32')).toThrow();
+  for (const bad of ['https://example.com', 'javascript:alert(1)', 'http://secret@127.0.0.1:1234'])
+    expect(() => browserCommand(bad, 'win32')).toThrow();
 });
 it('lets the MCP adapter run on agent-bundled Node 20+ while the Bridge needs SQLite 3.51.3', async () => {
   const { checkClientRuntime, checkRuntime } = await import('./version');

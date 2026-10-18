@@ -9,7 +9,10 @@ export interface MeasuredBlock {
   continuationHeight?: number;
 }
 
-export interface PageAllocation { blockIds: string[]; continuationBlockId?: string }
+export interface PageAllocation {
+  blockIds: string[];
+  continuationBlockId?: string;
+}
 
 /*
  * Breaking rules for every entry, the same for the whole document: a group (an entry, or the rows of a skills
@@ -30,12 +33,17 @@ function withGroupRules(blocks: MeasuredBlock[], pageCapacity: number): Measured
       const lead = ruled.slice(start, end - 1).find((block) => !block.keepWithNext);
       if (lead) tied.add(lead);
       if (!ruled[end - 2].keepWithNext) tied.add(ruled[end - 2]);
-      tied.forEach((block) => { block.keepWithNext = true; });
+      tied.forEach((block) => {
+        block.keepWithNext = true;
+      });
       for (let run = start; run < end;) {
         let next = run + 1;
         while (next < end && ruled[next - 1].keepWithNext) next += 1;
         const members = ruled.slice(run, next);
-        if (members.reduce((sum, block) => sum + block.height, 0) > pageCapacity) members.forEach((block) => { if (tied.has(block)) block.keepWithNext = false; });
+        if (members.reduce((sum, block) => sum + block.height, 0) > pageCapacity)
+          members.forEach((block) => {
+            if (tied.has(block)) block.keepWithNext = false;
+          });
         run = next;
       }
     }
@@ -50,25 +58,32 @@ function bundleEnd(blocks: MeasuredBlock[], start: number): number {
   return end;
 }
 
-function balanceAllocations(blocks: MeasuredBlock[], greedy: PageAllocation[], firstCapacity: number, pageCapacity: number): PageAllocation[] {
+function balanceAllocations(
+  blocks: MeasuredBlock[],
+  greedy: PageAllocation[],
+  firstCapacity: number,
+  pageCapacity: number,
+): PageAllocation[] {
   const pageCount = greedy.length;
   if (pageCount < 3 || blocks.some((block) => block.breakBefore)) return greedy;
 
-  const capacities = Array.from({ length: pageCount }, (_, index) => index === 0 ? firstCapacity : pageCapacity);
+  const capacities = Array.from({ length: pageCount }, (_, index) => (index === 0 ? firstCapacity : pageCapacity));
   const prefix = [0];
   blocks.forEach((block) => prefix.push(prefix.at(-1)! + block.height));
   const totalCapacity = capacities.reduce((sum, capacity) => sum + capacity, 0);
-  const targetRatio = Math.min(.84, prefix.at(-1)! / totalCapacity);
+  const targetRatio = Math.min(0.84, prefix.at(-1)! / totalCapacity);
 
-  const startsWithContinuation = (start: number) => start > 0 && blocks[start].groupId && blocks[start].groupId === blocks[start - 1].groupId;
-  const segmentHeight = (start: number, end: number) => prefix[end] - prefix[start] + (startsWithContinuation(start) ? blocks[start].continuationHeight ?? 0 : 0);
+  const startsWithContinuation = (start: number) =>
+    start > 0 && blocks[start].groupId && blocks[start].groupId === blocks[start - 1].groupId;
+  const segmentHeight = (start: number, end: number) =>
+    prefix[end] - prefix[start] + (startsWithContinuation(start) ? (blocks[start].continuationHeight ?? 0) : 0);
   const validBoundary = (start: number) => start <= 0 || !blocks[start - 1].keepWithNext;
   const pageScore = (start: number, end: number, pageIndex: number) => {
     const ratio = segmentHeight(start, end) / capacities[pageIndex];
     let score = (ratio - targetRatio) ** 2;
-    if (ratio < .58) score += (.58 - ratio) * 4;
-    if (ratio > .96) score += (ratio - .96) * 2;
-    if (startsWithContinuation(start)) score += .012;
+    if (ratio < 0.58) score += (0.58 - ratio) * 4;
+    if (ratio > 0.96) score += (ratio - 0.96) * 2;
+    if (startsWithContinuation(start)) score += 0.012;
     return score;
   };
 
@@ -102,11 +117,16 @@ function balanceAllocations(blocks: MeasuredBlock[], greedy: PageAllocation[], f
   }
   return ranges.map(([start, rangeEnd]) => ({
     blockIds: blocks.slice(start, rangeEnd).map((block) => block.id),
-    continuationBlockId: startsWithContinuation(start) && blocks[start].continuationHeight ? blocks[start].id : undefined,
+    continuationBlockId:
+      startsWithContinuation(start) && blocks[start].continuationHeight ? blocks[start].id : undefined,
   }));
 }
 
-export function allocatePages(measured: MeasuredBlock[], firstCapacity: number, pageCapacity: number): PageAllocation[] {
+export function allocatePages(
+  measured: MeasuredBlock[],
+  firstCapacity: number,
+  pageCapacity: number,
+): PageAllocation[] {
   if (!measured.length) return [{ blockIds: [] }];
   const blocks = withGroupRules(measured, pageCapacity);
   const pages: PageAllocation[] = [{ blockIds: [] }];
@@ -121,7 +141,7 @@ export function allocatePages(measured: MeasuredBlock[], firstCapacity: number, 
       continuationBlockId: continuesGroup && continuationBlock.continuationHeight ? continuationBlock.id : undefined,
     });
     pageIndex += 1;
-    remaining = pageCapacity - (continuesGroup ? continuationBlock?.continuationHeight ?? 0 : 0);
+    remaining = pageCapacity - (continuesGroup ? (continuationBlock?.continuationHeight ?? 0) : 0);
   };
 
   while (index < blocks.length) {
@@ -129,7 +149,8 @@ export function allocatePages(measured: MeasuredBlock[], firstCapacity: number, 
     if (block.breakBefore && pages[pageIndex].blockIds.length) newPage(block, blocks[index - 1]);
     const end = bundleEnd(blocks, index);
     const bundleHeight = blocks.slice(index, end).reduce((sum, item) => sum + item.height, 0);
-    if (bundleHeight <= pageCapacity && bundleHeight > remaining && pages[pageIndex].blockIds.length) newPage(block, blocks[index - 1]);
+    if (bundleHeight <= pageCapacity && bundleHeight > remaining && pages[pageIndex].blockIds.length)
+      newPage(block, blocks[index - 1]);
 
     if (bundleHeight <= pageCapacity) {
       for (let cursor = index; cursor < end; cursor += 1) pages[pageIndex].blockIds.push(blocks[cursor].id);
@@ -147,7 +168,11 @@ export function allocatePages(measured: MeasuredBlock[], firstCapacity: number, 
   return balanceAllocations(blocks, compactPages, firstCapacity, pageCapacity);
 }
 
-export function toMeasuredBlocks(blocks: ThemeBlock[], heights: Map<string, number>, continuationHeights = new Map<string, number>()): MeasuredBlock[] {
+export function toMeasuredBlocks(
+  blocks: ThemeBlock[],
+  heights: Map<string, number>,
+  continuationHeights = new Map<string, number>(),
+): MeasuredBlock[] {
   return blocks.map((block) => ({
     id: block.id,
     height: Math.max(0, heights.get(block.id) ?? 0),

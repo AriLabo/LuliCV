@@ -1,10 +1,13 @@
-import { describePath } from '../../src/core/change-summary';
 import { buildTree, resumeKind, type TreeNode } from '../../src/core/tree';
 import type { ResumeDocument } from '../../src/core/types';
 import type { SourceChanges, SqliteRepository } from './sqlite-repository';
 
 export interface TreeSummaryNode {
-  id: string; name: string; kind: 'base' | 'job'; revision: number; updatedAt: number;
+  id: string;
+  name: string;
+  kind: 'base' | 'job';
+  revision: number;
+  updatedAt: number;
   purpose?: string;
   target?: { company: string; role: string };
   /** Number of content changes in the source since this resume was copied from it. */
@@ -13,14 +16,22 @@ export interface TreeSummaryNode {
 }
 
 /** A compact, agent-readable view of the workspace: placement, purpose, targets and stale copies. */
-export async function treeSummary(repository: SqliteRepository, documents: ResumeDocument[]): Promise<TreeSummaryNode[]> {
+export async function treeSummary(
+  repository: SqliteRepository,
+  documents: ResumeDocument[],
+): Promise<TreeSummaryNode[]> {
   const changes = new Map<string, number>();
-  for (const document of documents) if (document.source) {
-    const result = await repository.sourceChanges(document.id);
-    if (result?.paths.length) changes.set(document.id, result.paths.length);
-  }
+  for (const document of documents)
+    if (document.source) {
+      const result = await repository.sourceChanges(document.id);
+      if (result?.changes.length) changes.set(document.id, result.changes.length);
+    }
   const toNode = ({ document, children }: TreeNode): TreeSummaryNode => ({
-    id: document.id, name: document.name, kind: resumeKind(document), revision: document.revision, updatedAt: document.updatedAt,
+    id: document.id,
+    name: document.name,
+    kind: resumeKind(document),
+    revision: document.revision,
+    updatedAt: document.updatedAt,
     ...(document.purpose ? { purpose: document.purpose } : {}),
     ...(document.target ? { target: { company: document.target.company, role: document.target.role } } : {}),
     ...(changes.has(document.id) ? { sourceChanges: changes.get(document.id) } : {}),
@@ -29,8 +40,14 @@ export async function treeSummary(repository: SqliteRepository, documents: Resum
   return buildTree(documents).map(toNode);
 }
 
-/** Source changes with readable labels resolved against the source's current content. */
+/** Source changes as the agent reads them: readable labels, plus pointers into the source's current content. */
 export function describeSourceChanges(result: SourceChanges) {
-  const labels = [...new Set(result.paths.map((path) => describePath(result.source, path)))];
-  return { sourceId: result.sourceId, sourceName: result.sourceName, fromRevision: result.fromRevision, toRevision: result.toRevision, changes: labels, paths: result.paths.slice(0, 50) };
+  return {
+    sourceId: result.sourceId,
+    sourceName: result.sourceName,
+    fromRevision: result.fromRevision,
+    toRevision: result.toRevision,
+    changes: result.changes,
+    paths: result.paths.slice(0, 50),
+  };
 }

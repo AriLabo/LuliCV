@@ -91,7 +91,7 @@ Section 在 `sections` 中的顺序就是编辑器和简历中的顺序。`visib
 
 ## ID、日期和空值约定
 
-- 所有 section ID 和 entry ID 必须是非空字符串，并在各自范围内保持唯一；修改文字时不要改变 ID。
+- 所有 section ID 和 entry ID 必须是非空字符串（不能只有空格），并在各自范围内保持唯一；修改文字时不要改变 ID。
 - 日期是展示用字符串，例如 `2022.06 — 至今`，数据层不解析或改写它。
 - 可选内容使用空字符串或空数组，不使用 `null`。
 - URL 也是字符串；Theme 会把非空链接渲染为可点击链接。
@@ -103,7 +103,7 @@ Section 在 `sections` 中的顺序就是编辑器和简历中的顺序。`visib
 - “校验 JSON”只读取并检查，不修改任何数据。
 - “覆盖当前简历”只替换当前记录的 `ResumeData`，保留简历名称、Theme、Density 和页面设置，并在覆盖前二次确认。
 - “导入为新简历”创建一份新记录，沿用当前 Theme 和页面设置。
-- “从文件导入 / 恢复”还可以读取完整的 `ResumeRecord` 或 `ResumeWorkspace` 备份。
+- “从文件导入（作为新简历）”还可以读取完整的 `ResumeRecord` 或“导出全部 JSON”得到的 `ResumeWorkspace`。文件里的每份简历都作为新简历加入，不覆盖现有简历，也不带修订记录、`parentId` 和 `source`；完整备份和恢复用 CLI 的 `backup` / `restore-workspace`。
 
 所有导入、校验和持久化都在当前浏览器本地完成。
 

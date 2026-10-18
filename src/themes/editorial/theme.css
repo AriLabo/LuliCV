@@ -1,47 +1,231 @@
 /* 编辑 · engine 1. A left gutter carries section numbers and bullets; metadata sits in an aligned grid. */
 color: #25282e;
-font-family: var(--rs-font-family, "MiSans VF", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif);
+font-family: var(
+  --rs-font-family,
+  'MiSans VF',
+  'Noto Sans SC',
+  -apple-system,
+  BlinkMacSystemFont,
+  'PingFang SC',
+  'Microsoft YaHei',
+  sans-serif
+);
 font-size: var(--rs-font-size);
 line-height: var(--rs-line-height);
 --gutter: 41pt;
 
-.rs-header { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) fit-content(82mm); column-gap: 12mm; min-height: 36mm; padding-bottom: 8pt; border-bottom: .65pt solid #292d34; }
-.rs-identity { display: contents; }
-.rs-name { grid-column: 1; align-self: end; margin: 0; color: #202329; font-size: 32pt; font-weight: 650; letter-spacing: -.8pt; line-height: 1.02; }
-.rs-headline { grid-column: 1; margin: 6pt 0 0; color: var(--rs-accent); font-size: 9.5pt; font-weight: 540; letter-spacing: .06pt; line-height: 1.35; }
-.rs-contacts { grid-column: 2; grid-row: 1 / span 2; display: grid; align-content: end; gap: 2.3pt; min-width: 59mm; padding-bottom: 1pt; }
-.rs-details { grid-column: 1; margin-top: 4pt; color: #5d626a; font-size: 8pt; line-height: 1.35; }
+.rs-header {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) fit-content(82mm);
+  column-gap: 12mm;
+  min-height: 36mm;
+  padding-bottom: 8pt;
+  border-bottom: 0.65pt solid #292d34;
+}
+.rs-identity {
+  display: contents;
+}
+.rs-name {
+  grid-column: 1;
+  align-self: end;
+  margin: 0;
+  color: #202329;
+  font-size: 32pt;
+  font-weight: 650;
+  letter-spacing: -0.8pt;
+  line-height: 1.02;
+}
+.rs-headline {
+  grid-column: 1;
+  margin: 6pt 0 0;
+  color: var(--rs-accent);
+  font-size: 9.5pt;
+  font-weight: 540;
+  letter-spacing: 0.06pt;
+  line-height: 1.35;
+}
+.rs-contacts {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  align-content: end;
+  gap: 2.3pt;
+  min-width: 59mm;
+  padding-bottom: 1pt;
+}
+.rs-details {
+  grid-column: 1;
+  margin-top: 4pt;
+  color: #5d626a;
+  font-size: 8pt;
+  line-height: 1.35;
+}
 /* Details take a third row beside the contacts; without them the header keeps two rows and its exact spacing. */
-.rs-header:has(.rs-details) .rs-contacts { grid-row: 1 / span 3; }
-.rs-contact { display: grid; grid-template-columns: 28pt minmax(0, 1fr); align-items: baseline; gap: 5pt; min-width: 0; }
-.rs-contact::before { content: attr(data-code); color: #8a9099; font-size: 6.4pt; font-weight: 600; letter-spacing: .45pt; }
-.rs-contact-value { min-width: 0; color: #474c54; font-size: 7.35pt; font-weight: 430; line-height: 1.28; overflow-wrap: anywhere; }
-.rs-photo { position: absolute; top: 13pt; right: 0; width: 18mm; height: 23mm; border: .5pt solid #cfd2d8; border-radius: 1pt; object-fit: cover; }
-.rs-header--photo { grid-template-columns: minmax(0, 1fr) fit-content(72mm); column-gap: 8mm; padding-right: 22mm; }
-.rs-header--photo .rs-contacts { min-width: 51mm; }
+.rs-header:has(.rs-details) .rs-contacts {
+  grid-row: 1 / span 3;
+}
+.rs-contact {
+  display: grid;
+  grid-template-columns: 28pt minmax(0, 1fr);
+  align-items: baseline;
+  gap: 5pt;
+  min-width: 0;
+}
+.rs-contact::before {
+  content: attr(data-code);
+  color: #8a9099;
+  font-size: 6.4pt;
+  font-weight: 600;
+  letter-spacing: 0.45pt;
+}
+.rs-contact-value {
+  min-width: 0;
+  color: #474c54;
+  font-size: 7.35pt;
+  font-weight: 430;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+.rs-photo {
+  position: absolute;
+  top: 13pt;
+  right: 0;
+  width: 18mm;
+  height: 23mm;
+  border: 0.5pt solid #cfd2d8;
+  border-radius: 1pt;
+  object-fit: cover;
+}
+.rs-header--photo {
+  grid-template-columns: minmax(0, 1fr) fit-content(72mm);
+  column-gap: 8mm;
+  padding-right: 22mm;
+}
+.rs-header--photo .rs-contacts {
+  min-width: 51mm;
+}
 
-.rs-section-title { display: grid; grid-template-columns: 35pt max-content minmax(12pt, 1fr); align-items: baseline; gap: 6pt; padding-top: var(--rs-section-space); padding-bottom: 4pt; }
-.rs-section-index { display: inline; color: #8b9099; font-size: 6.8pt; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .4pt; }
-.rs-section-title h2 { margin: 0; color: var(--rs-accent); font-size: 12.8pt; font-weight: 625; letter-spacing: -.08pt; line-height: 1.08; }
-.rs-section-rule { height: .5pt; background: #a8adb5; transform: translateY(-.7pt); }
+.rs-section-title {
+  display: grid;
+  grid-template-columns: 35pt max-content minmax(12pt, 1fr);
+  align-items: baseline;
+  gap: 6pt;
+  padding-top: var(--rs-section-space);
+  padding-bottom: 4pt;
+}
+.rs-section-index {
+  display: inline;
+  color: #8b9099;
+  font-size: 6.8pt;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.4pt;
+}
+.rs-section-title h2 {
+  margin: 0;
+  color: var(--rs-accent);
+  font-size: 12.8pt;
+  font-weight: 625;
+  letter-spacing: -0.08pt;
+  line-height: 1.08;
+}
+.rs-section-rule {
+  height: 0.5pt;
+  background: #a8adb5;
+  transform: translateY(-0.7pt);
+}
 
-.rs-entry-head { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 18pt; padding: 0 0 1.6pt var(--gutter); }
-.rs-entry-main { display: flex; min-width: 0; flex-direction: column; }
-.rs-entry-title { color: #24272d; font-size: 10.1pt; font-weight: 625; line-height: 1.28; }
-.rs-entry-subtitle { color: #5d626a; font-size: 8.4pt; font-weight: 430; line-height: 1.34; }
-.rs-entry-meta { display: flex; flex-direction: column; align-items: flex-end; color: #666c75; font-size: 7.15pt; font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: .1pt; line-height: 1.52; white-space: nowrap; }
-.rs-entry-date { color: #858a92; }
+.rs-entry-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 18pt;
+  padding: 0 0 1.6pt var(--gutter);
+}
+.rs-entry-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.rs-entry-title {
+  color: #24272d;
+  font-size: 10.1pt;
+  font-weight: 625;
+  line-height: 1.28;
+}
+.rs-entry-subtitle {
+  color: #5d626a;
+  font-size: 8.4pt;
+  font-weight: 430;
+  line-height: 1.34;
+}
+.rs-entry-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #666c75;
+  font-size: 7.15pt;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: 0.1pt;
+  line-height: 1.52;
+  white-space: nowrap;
+}
+.rs-entry-date {
+  color: #858a92;
+}
 
-.rs-summary, .rs-description { padding: 0 0 2.6pt var(--gutter); color: #434850; }
-.rs-bullet { display: grid; grid-template-columns: 35pt 1fr; gap: 6pt; padding-bottom: 1.45pt; color: #434850; }
-.rs-bullet-mark { color: var(--rs-accent); font-size: 6.5pt; font-weight: 700; line-height: 2.02; text-align: right; }
-.rs-skill { display: grid; grid-template-columns: 35pt 78pt minmax(0, 1fr); gap: 6pt; padding-bottom: 1.6pt; color: #474c54; }
-.rs-skill::before { content: ""; }
-.rs-skill-category { color: #2a2e34; font-weight: 600; }
+.rs-summary,
+.rs-description {
+  padding: 0 0 2.6pt var(--gutter);
+  color: #434850;
+}
+.rs-bullet {
+  display: grid;
+  grid-template-columns: 35pt 1fr;
+  gap: 6pt;
+  padding-bottom: 1.45pt;
+  color: #434850;
+}
+.rs-bullet-mark {
+  color: var(--rs-accent);
+  font-size: 6.5pt;
+  font-weight: 700;
+  line-height: 2.02;
+  text-align: right;
+}
+.rs-skill {
+  display: grid;
+  grid-template-columns: 35pt 78pt minmax(0, 1fr);
+  gap: 6pt;
+  padding-bottom: 1.6pt;
+  color: #474c54;
+}
+.rs-skill::before {
+  content: '';
+}
+.rs-skill-category {
+  color: #2a2e34;
+  font-weight: 600;
+}
 
 /* 页眉角标：页眉顶部的小字标签，只是装饰，不是正文。 */
-&.rs-set-kicker .rs-header { padding-top: 15pt; }
-&.rs-set-kicker .rs-header::before { position: absolute; top: 0; left: 0; color: var(--rs-accent); content: "RESUME / A4"; font-size: 6.8pt; font-weight: 600; letter-spacing: .95pt; line-height: 1; }
+&.rs-set-kicker .rs-header {
+  padding-top: 15pt;
+}
+&.rs-set-kicker .rs-header::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--rs-accent);
+  content: 'RESUME / A4';
+  font-size: 6.8pt;
+  font-weight: 600;
+  letter-spacing: 0.95pt;
+  line-height: 1;
+}
 
 /* 关闭栏目编号时，编号列留空但保持对齐。 */
-&:not(.rs-set-numbers) .rs-section-index { visibility: hidden; }
+&:not(.rs-set-numbers) .rs-section-index {
+  visibility: hidden;
+}

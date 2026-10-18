@@ -35,9 +35,23 @@ function run(executable, args, options = {}, timeout = 180000) {
     const child = spawn(executable, args, { ...options, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
     child.stdout.on('data', (data) => process.stderr.write(data));
     child.stderr.on('data', (data) => process.stderr.write(data));
-    const deadline = setTimeout(() => { child.kill(); reject(new Error(`Installer command timed out after ${Math.round(timeout / 1000)}s; retry after checking network/disk`)); }, timeout);
-    child.once('error', (error) => { clearTimeout(deadline); reject(error); });
-    child.once('exit', (code) => { clearTimeout(deadline); code === 0 ? resolve() : reject(new Error(`Installer command failed (${code})`)); });
+    const deadline = setTimeout(() => {
+      child.kill();
+      reject(
+        new Error(
+          `Installer command timed out after ${Math.round(timeout / 1000)}s; retry after checking network/disk`,
+        ),
+      );
+    }, timeout);
+    child.once('error', (error) => {
+      clearTimeout(deadline);
+      reject(error);
+    });
+    child.once('exit', (code) => {
+      clearTimeout(deadline);
+      if (code === 0) resolve();
+      else reject(new Error(`Installer command failed (${code})`));
+    });
   });
 }
 // Doctor runs here, in a child whose output this process reads itself, so the agent gets the result with the install
@@ -45,10 +59,23 @@ function run(executable, args, options = {}, timeout = 180000) {
 function doctor(entry) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [entry, 'doctor'], { shell: false, stdio: ['ignore', 'pipe', 'ignore'] });
-    let output = ''; child.stdout.on('data', (data) => { output += data; });
+    let output = '';
+    child.stdout.on('data', (data) => {
+      output += data;
+    });
     const deadline = setTimeout(() => child.kill(), 120000);
-    child.once('error', () => { clearTimeout(deadline); resolve(undefined); });
-    child.once('close', () => { clearTimeout(deadline); try { resolve(JSON.parse(output)); } catch { resolve(undefined); } });
+    child.once('error', () => {
+      clearTimeout(deadline);
+      resolve(undefined);
+    });
+    child.once('close', () => {
+      clearTimeout(deadline);
+      try {
+        resolve(JSON.parse(output));
+      } catch {
+        resolve(undefined);
+      }
+    });
   });
 }
 // `mirror` is a dist root laid out like https://nodejs.org/dist, the same convention as nvm's NVM_NODEJS_ORG_MIRROR.
@@ -57,21 +84,33 @@ async function downloadNode(mirror, filename, destination) {
   const response = await fetch(url, { signal: AbortSignal.timeout(180000) });
   if (!response.ok) throw new Error(`Node download failed (HTTP ${response.status}): ${url}`);
   const data = Buffer.from(await response.arrayBuffer());
-  if (createHash('sha256').update(data).digest('hex') !== SHA256[filename]) throw new Error(`Node checksum mismatch: ${url}`);
+  if (createHash('sha256').update(data).digest('hex') !== SHA256[filename])
+    throw new Error(`Node checksum mismatch: ${url}`);
   await writeFile(destination, data);
 }
 // Where official builds, Homebrew and nvm keep npm relative to the node binary.
 function bundledNpm(node) {
   const root = path.dirname(node);
-  return process.platform === 'win32' ? path.join(root, 'node_modules/npm/bin/npm-cli.js') : path.join(root, '../lib/node_modules/npm/bin/npm-cli.js');
+  return process.platform === 'win32'
+    ? path.join(root, 'node_modules/npm/bin/npm-cli.js')
+    : path.join(root, '../lib/node_modules/npm/bin/npm-cli.js');
 }
 // Read package/package.json straight from the npm tarball, so a wrong or mismatched package fails before anything is installed.
 async function packageVersion(archive) {
   let tar;
-  try { tar = gunzipSync(await readFile(archive)); } catch { throw new Error('Use the provided CVSlate .tgz'); }
+  try {
+    tar = gunzipSync(await readFile(archive));
+  } catch {
+    throw new Error('Use the provided CVSlate .tgz');
+  }
   for (let offset = 0; offset + 512 <= tar.length;) {
-    const field = (start, length) => tar.subarray(offset + start, offset + start + length).toString('utf8').replace(/\0.*$/s, '');
-    const name = field(0, 100), size = parseInt(field(124, 12).trim() || '0', 8);
+    const field = (start, length) =>
+      tar
+        .subarray(offset + start, offset + start + length)
+        .toString('utf8')
+        .replace(/\0.*$/s, '');
+    const name = field(0, 100),
+      size = parseInt(field(124, 12).trim() || '0', 8);
     if (!name) break;
     offset += 512;
     if (name === 'package/package.json') {
@@ -84,36 +123,83 @@ async function packageVersion(archive) {
   throw new Error('Use the provided CVSlate .tgz');
 }
 async function main() {
-  const { values } = parseArgs({ options: { package: { type: 'string' }, 'private-node': { type: 'boolean' }, 'node-mirror': { type: 'string', default: 'https://nodejs.org/dist' } } });
+  const { values } = parseArgs({
+    options: {
+      package: { type: 'string' },
+      'private-node': { type: 'boolean' },
+      'node-mirror': { type: 'string', default: 'https://nodejs.org/dist' },
+    },
+  });
   const version = await skillVersion();
-  if (!version) throw new Error('This Skill is incomplete: scripts/release.json is missing. Reinstall the whole Skill directory, including every file under scripts/. Nothing was installed.');
+  if (!version)
+    throw new Error(
+      'This Skill is incomplete: scripts/release.json is missing. Reinstall the whole Skill directory, including every file under scripts/. Nothing was installed.',
+    );
   let archive;
   if (values.package) {
-    archive = path.resolve(values.package); if (!archive.endsWith('.tgz')) throw new Error('Use the provided CVSlate .tgz'); await access(archive);
+    archive = path.resolve(values.package);
+    if (!archive.endsWith('.tgz')) throw new Error('Use the provided CVSlate .tgz');
+    await access(archive);
     const found = await packageVersion(archive);
-    if (found !== version) throw new Error(`This package is CVSlate ${found} but this Skill is ${version}; install arilabo-cvslate-${version}.tgz, or run without --package to install from npm. Nothing was installed.`);
+    if (found !== version)
+      throw new Error(
+        `This package is CVSlate ${found} but this Skill is ${version}. To stay on ${version}, install arilabo-cvslate-${version}.tgz or run without --package to install from npm. To use ${found}, install the Skill of ${found} (cvslate-skill-${found}.zip, released with the package) and run its installer; editing scripts/release.json instead leaves this Skill's instructions driving a runtime they were not written for. Nothing was installed.`,
+      );
   }
   const root = runtimeRoot();
   const destination = path.join(root, version);
   const entry = fileURLToPath(new URL('./cvslate.mjs', import.meta.url));
   const report = async (install, extra) => {
     const checked = await doctor(entry);
-    process.stdout.write(JSON.stringify({ installed: true, version, source: install.source, directory: destination, invocation: ['node', entry], node: install.systemNode ? 'system' : 'private', ...extra, ...(checked ? { doctor: checked } : {}), next: checked ? 'Run setup only if the doctor above reports no browser, then doctor again. Then open the editor with preview.' : 'Run doctor through the invocation; run setup only if it reports no browser. Then open the editor with preview.' }) + '\n');
+    process.stdout.write(
+      JSON.stringify({
+        installed: true,
+        version,
+        source: install.source,
+        directory: destination,
+        invocation: ['node', entry],
+        node: install.systemNode ? 'system' : 'private',
+        ...extra,
+        ...(checked ? { doctor: checked } : {}),
+        next: checked
+          ? 'Run setup only if the doctor above reports no browser, then doctor again. Then open the editor with preview.'
+          : 'Run doctor through the invocation; run setup only if it reports no browser. Then open the editor with preview.',
+      }) + '\n',
+    );
   };
   const existing = await readInstall(destination);
-  if (existing) { await report(existing, { alreadyInstalled: true }); return; }
-  try { await access(destination); throw new Error(`${destination} exists but is not a complete installation; delete it and retry.`); }
-  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (existing) {
+    await report(existing, { alreadyInstalled: true });
+    return;
+  }
+  try {
+    await access(destination);
+    throw new Error(`${destination} exists but is not a complete installation; delete it and retry.`);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
   await mkdir(root, { recursive: true });
   const stage = await mkdtemp(path.join(root, '.install-'));
   try {
-    const platform = process.platform, arch = process.arch;
-    if (!['darwin', 'linux', 'win32'].includes(platform) || !['arm64', 'x64'].includes(arch)) throw new Error('Unsupported platform/architecture');
+    const platform = process.platform,
+      arch = process.arch;
+    if (!['darwin', 'linux', 'win32'].includes(platform) || !['arm64', 'x64'].includes(arch))
+      throw new Error('Unsupported platform/architecture');
     // Reuse the Node running this helper when its SQLite is new enough and its npm sits beside it; otherwise download a private one.
     const systemNpm = bundledNpm(process.execPath);
-    const system = !values['private-node'] && sqliteReady() && await access(systemNpm).then(() => true, () => false);
-    let node = process.execPath, nodeRelative;
-    if (system) process.stderr.write(`Using this Node ${process.versions.node} (SQLite ${process.versions.sqlite}); nothing is downloaded for it.\n`);
+    const system =
+      !values['private-node'] &&
+      sqliteReady() &&
+      (await access(systemNpm).then(
+        () => true,
+        () => false,
+      ));
+    let node = process.execPath,
+      nodeRelative;
+    if (system)
+      process.stderr.write(
+        `Using this Node ${process.versions.node} (SQLite ${process.versions.sqlite}); nothing is downloaded for it.\n`,
+      );
     else {
       const os = platform === 'win32' ? 'win' : platform;
       const extension = platform === 'win32' ? 'zip' : 'tar.gz';
@@ -126,7 +212,12 @@ async function main() {
         // Suppress PowerShell progress: it serializes one record per archive entry to stderr,
         // which floods the parent pipe and adds no diagnostic value.
         const script = `$ProgressPreference = 'SilentlyContinue'; Expand-Archive -LiteralPath ${quote(path.join(stage, filename))} -DestinationPath ${quote(stage)}`;
-        await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')]);
+        await run('powershell.exe', [
+          '-NoProfile',
+          '-NonInteractive',
+          '-EncodedCommand',
+          Buffer.from(script, 'utf16le').toString('base64'),
+        ]);
       } else await run('tar', ['-xzf', path.join(stage, filename), '-C', stage]);
       await rename(path.join(stage, basename), path.join(stage, 'node'));
       await rm(path.join(stage, filename));
@@ -137,18 +228,67 @@ async function main() {
     // npm uses the registry from the user's own npm config; the package's npm-shrinkwrap.json pins every dependency's integrity either way.
     const spec = archive ?? `${PACKAGE}@${version}`;
     if (!archive) process.stderr.write(`Installing ${spec} from the npm registry.\n`);
-    try { await run(node, [npm, 'install', '--prefix', path.join(stage, 'app'), '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', spec], { env: { ...process.env, PATH: path.dirname(node) + path.delimiter + (process.env.PATH ?? '') } }, INSTALL_TIMEOUT_MS); }
-    catch (error) { throw archive ? error : new Error(`${error.message}. npm could not install ${spec}: a registry mirror can lag a new release by some minutes, so retry later; with a provided arilabo-cvslate-${version}.tgz, pass --package <path> instead`); }
+    try {
+      await run(
+        node,
+        [
+          npm,
+          'install',
+          '--prefix',
+          path.join(stage, 'app'),
+          '--omit=dev',
+          '--ignore-scripts',
+          '--no-audit',
+          '--no-fund',
+          spec,
+        ],
+        { env: { ...process.env, PATH: path.dirname(node) + path.delimiter + (process.env.PATH ?? '') } },
+        INSTALL_TIMEOUT_MS,
+      );
+    } catch (error) {
+      throw archive
+        ? error
+        : new Error(
+            `${error.message}. npm could not install ${spec}: a registry mirror can lag a new release by some minutes, so retry later; with a provided arilabo-cvslate-${version}.tgz, pass --package <path> instead`,
+          );
+    }
     const installed = JSON.parse(await readFile(path.join(stage, 'app/node_modules', PACKAGE, 'package.json'), 'utf8'));
-    if (installed.name !== PACKAGE || installed.version !== version) throw new Error(`npm installed ${installed.name}@${installed.version}, not ${PACKAGE}@${version}`);
+    if (installed.name !== PACKAGE || installed.version !== version)
+      throw new Error(`npm installed ${installed.name}@${installed.version}, not ${PACKAGE}@${version}`);
     await access(path.join(stage, 'app/node_modules', PACKAGE, 'agent-dist/cli.mjs'));
     // The entry reads this to pick the Node: a private one by its path inside the directory, or the system Node by absolute path.
-    const install = { version, source: archive ? 'package' : 'npm', systemNode: system, node: system ? node : nodeRelative, installedAt: new Date().toISOString() };
+    const install = {
+      version,
+      source: archive ? 'package' : 'npm',
+      systemNode: system,
+      node: system ? node : nodeRelative,
+      installedAt: new Date().toISOString(),
+    };
     await writeFile(path.join(stage, 'install.json'), JSON.stringify(install, null, 2) + '\n');
     // A concurrent install of the same version may finish first; its result is as good as ours.
-    try { await rename(stage, destination); }
-    catch (error) { const winner = await readInstall(destination); if (!winner) throw error; await report(winner, { alreadyInstalled: true }); return; }
+    try {
+      await rename(stage, destination);
+    } catch (error) {
+      const winner = await readInstall(destination);
+      if (!winner) throw error;
+      await report(winner, { alreadyInstalled: true });
+      return;
+    }
     await report(install, await removeOlder(root, version));
-  } finally { await rm(stage, { recursive: true, force: true }); }
+  } finally {
+    await rm(stage, { recursive: true, force: true });
+  }
 }
-try { await main(); } catch (error) { process.stderr.write(JSON.stringify({ code: 'INSTALL_FAILED', message: error.message, nextAction: 'Check network/disk/permissions and retry. Do not modify global Node, CLI wrappers, or workspace files.' }) + '\n'); process.exitCode = 1; }
+try {
+  await main();
+} catch (error) {
+  process.stderr.write(
+    JSON.stringify({
+      code: 'INSTALL_FAILED',
+      message: error.message,
+      nextAction:
+        'Check network/disk/permissions and retry. Do not modify global Node, CLI wrappers, or workspace files.',
+    }) + '\n',
+  );
+  process.exitCode = 1;
+}

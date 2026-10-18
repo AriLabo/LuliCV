@@ -19,12 +19,27 @@ async function bootstrap() {
   if (workspaceId) {
     const repository = new BridgeRepository();
     await repository.authenticate();
-    if (location.pathname === '/render') { root.render(<RenderApp />); return; }
+    if (location.pathname === '/render') {
+      root.render(<RenderApp />);
+      return;
+    }
     // Installed themes load before the editor opens so a resume using one never flashes in the default theme.
     await loadInstalledThemes(repository).catch((error) => console.warn('已安装主题读取失败', error));
-    repository.onThemes(() => { void loadInstalledThemes(repository).catch((error) => console.warn('已安装主题读取失败', error)); });
+    repository.onThemes(() => {
+      void loadInstalledThemes(repository).catch((error) => console.warn('已安装主题读取失败', error));
+    });
     configureRepository(repository, 'workspace', workspaceId);
   }
-  root.render(<StrictMode><App /></StrictMode>);
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
 }
-void bootstrap().catch((error) => root.render(<div className="loading" role="alert">工作区打开失败：{errorMessage(error)}</div>));
+void bootstrap().catch((error) =>
+  root.render(
+    <div className="loading" role="alert">
+      工作区打开失败：{errorMessage(error)}
+    </div>,
+  ),
+);

@@ -14,12 +14,16 @@ export function dataHome(env = process.env, platform = process.platform, home = 
   if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'CVSlate');
   if (platform === 'win32') return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'CVSlate');
   // XDG requires an absolute path and says to ignore a relative one.
-  const data = env.XDG_DATA_HOME && path.isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : path.join(home, '.local', 'share');
+  const data =
+    env.XDG_DATA_HOME && path.isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : path.join(home, '.local', 'share');
   return path.join(data, 'cvslate');
 }
 
 /** Where a command's workspace is and how it was found: `option` from --workspace, `chosen` by `cvslate workspace <directory>`. */
-export interface WorkspaceLocation { directory: string; source: 'option' | 'chosen' | 'default' }
+export interface WorkspaceLocation {
+  directory: string;
+  source: 'option' | 'chosen' | 'default';
+}
 
 const settingsFile = (env: NodeJS.ProcessEnv) => path.join(dataHome(env), 'settings.json');
 const errorCode = (error: unknown) => (error as NodeJS.ErrnoException).code;
@@ -32,18 +36,29 @@ export async function locateWorkspace(option?: string, env = process.env): Promi
   if (option) return { directory: path.resolve(option), source: 'option' };
   const file = settingsFile(env);
   let settings: { workspace?: unknown } | null;
-  try { settings = JSON.parse(await readFile(file, 'utf8')); }
-  catch (error) {
+  try {
+    settings = JSON.parse(await readFile(file, 'utf8'));
+  } catch (error) {
     if (errorCode(error) === 'ENOENT') return { directory: path.join(dataHome(env), 'workspace'), source: 'default' };
-    if (error instanceof SyntaxError) settings = {}; else throw error;
+    if (error instanceof SyntaxError) settings = {};
+    else throw error;
   }
-  if (typeof settings?.workspace !== 'string' || !path.isAbsolute(settings.workspace)) throw new ResumeError('STORAGE_FAILED', `${file} 已损坏，读不出选定的工作区；执行 cvslate workspace <directory> 重新选择`);
+  if (typeof settings?.workspace !== 'string' || !path.isAbsolute(settings.workspace))
+    throw new ResumeError(
+      'STORAGE_FAILED',
+      `${file} 已损坏，读不出选定的工作区；执行 cvslate workspace <directory> 重新选择`,
+    );
   return { directory: settings.workspace, source: 'chosen' };
 }
 
 export async function isWorkspace(directory: string) {
-  try { await readFile(path.join(directory, 'cvslate.json')); return true; }
-  catch (error) { if (errorCode(error) === 'ENOENT' || errorCode(error) === 'ENOTDIR') return false; throw error; }
+  try {
+    await readFile(path.join(directory, 'cvslate.json'));
+    return true;
+  } catch (error) {
+    if (errorCode(error) === 'ENOENT' || errorCode(error) === 'ENOTDIR') return false;
+    throw error;
+  }
 }
 
 // Files the OS drops into any folder it shows; a directory holding only these still counts as empty.
@@ -52,12 +67,17 @@ const SYSTEM_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
 /** A workspace is created only in a new or empty directory, so it never mixes with the user's other files. */
 async function createWorkspace(directory: string) {
   let entries: string[] = [];
-  try { entries = await readdir(directory); }
-  catch (error) {
+  try {
+    entries = await readdir(directory);
+  } catch (error) {
     if (errorCode(error) === 'ENOTDIR') throw new ResumeError('VALIDATION_FAILED', `${directory} 是文件，不是目录`);
     if (errorCode(error) !== 'ENOENT') throw error;
   }
-  if (entries.some((entry) => !SYSTEM_FILES.has(entry))) throw new ResumeError('VALIDATION_FAILED', `${directory} 里已经有别的文件；工作区要放在新的或空的目录里，例如 ${path.join(directory, 'CVSlate')}`);
+  if (entries.some((entry) => !SYSTEM_FILES.has(entry)))
+    throw new ResumeError(
+      'VALIDATION_FAILED',
+      `${directory} 里已经有别的文件；工作区要放在新的或空的目录里，例如 ${path.join(directory, 'CVSlate')}`,
+    );
   return await initializeWorkspace(directory);
 }
 
@@ -66,14 +86,18 @@ export async function openWorkspace(location: WorkspaceLocation) {
   if (await isWorkspace(location.directory)) return await realpath(location.directory);
   // A chosen workspace that has gone missing was more likely moved, or is on a disk not connected, than
   // abandoned; an empty one created in its place would hide that.
-  if (location.source === 'chosen') throw new ResumeError('NOT_FOUND', `找不到选定的工作区 ${location.directory}：可能被移动了，或者所在的磁盘没有连接。确认后重试；要改用别的位置，执行 cvslate workspace <directory>`);
+  if (location.source === 'chosen')
+    throw new ResumeError(
+      'NOT_FOUND',
+      `找不到选定的工作区 ${location.directory}：可能被移动了，或者所在的磁盘没有连接。确认后重试；要改用别的位置，执行 cvslate workspace <directory>`,
+    );
   return await createWorkspace(location.directory);
 }
 
 /** Makes `directory` the workspace every later command uses: an existing workspace, or a new one created there. */
 export async function chooseWorkspace(directory: string, env = process.env) {
   const target = path.resolve(directory);
-  const root = await isWorkspace(target) ? await realpath(target) : await createWorkspace(target);
+  const root = (await isWorkspace(target)) ? await realpath(target) : await createWorkspace(target);
   await mkdir(dataHome(env), { recursive: true });
   await atomicWrite(settingsFile(env), { workspace: root });
   return root;

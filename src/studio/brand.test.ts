@@ -7,6 +7,7 @@ describe('wordmarkAccent', () => {
   });
 
   it('falls back to ink for light or unparsable colours', () => {
-    for (const color of ['#ffd700', '#eee', '#9ad', 'rebeccapurple', 'rgb(0 0 0)', '#12345']) expect(wordmarkAccent(color)).toBeUndefined();
+    for (const color of ['#ffd700', '#eee', '#9ad', 'rebeccapurple', 'rgb(0 0 0)', '#12345'])
+      expect(wordmarkAccent(color)).toBeUndefined();
   });
 });

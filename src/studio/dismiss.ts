@@ -6,10 +6,18 @@ export function useDismiss(ref: RefObject<HTMLElement | null>, active: boolean, 
   latest.current = dismiss;
   useEffect(() => {
     if (!active) return;
-    const onDown = (event: MouseEvent) => { if (!ref.current?.contains(event.target as Node)) latest.current(false); };
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') latest.current(true); };
-    document.addEventListener('mousedown', onDown); document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+    const onDown = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) latest.current(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') latest.current(true);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [ref, active]);
 }
 

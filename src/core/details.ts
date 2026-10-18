@@ -11,6 +11,6 @@ export const DETAIL_FIELDS = [
   { id: 'hometown', label: '籍贯' },
   { id: 'yearsOfExperience', label: '工作年限' },
 ] as const satisfies ReadonlyArray<{ id: keyof BasicInformation; label: string }>;
-export type DetailField = typeof DETAIL_FIELDS[number]['id'];
+export type DetailField = (typeof DETAIL_FIELDS)[number]['id'];
 /** One short line holds all of them; a value past this is a sentence that belongs elsewhere. */
 export const DETAIL_MAX_LENGTH = 20;

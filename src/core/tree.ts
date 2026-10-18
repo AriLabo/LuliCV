@@ -11,7 +11,7 @@ import type { ResumeDocument } from './types';
 export const MAX_TREE_LEVELS = 3;
 
 export type ResumeKind = 'base' | 'job';
-export const resumeKind = (document: Pick<ResumeDocument, 'target'>): ResumeKind => document.target ? 'job' : 'base';
+export const resumeKind = (document: Pick<ResumeDocument, 'target'>): ResumeKind => (document.target ? 'job' : 'base');
 
 type ById = Map<string, ResumeDocument>;
 const index = (documents: ResumeDocument[]): ById => new Map(documents.map((document) => [document.id, document]));
@@ -23,11 +23,13 @@ export function effectiveParentId(document: ResumeDocument, byId: ById): string 
 }
 
 function ancestors(id: string, byId: ById): string[] {
-  const chain: string[] = []; let current = byId.get(id);
+  const chain: string[] = [];
+  let current = byId.get(id);
   while (current) {
     const parent = effectiveParentId(current, byId);
     if (!parent || chain.includes(parent) || parent === id) break;
-    chain.push(parent); current = byId.get(parent);
+    chain.push(parent);
+    current = byId.get(parent);
   }
   return chain;
 }
@@ -38,11 +40,21 @@ function subtreeHeight(id: string, documents: ResumeDocument[], byId: ById): num
 }
 
 /** Why `id` cannot be placed under `parentId` (undefined = top level), or undefined when it can. */
-export function placementError(documents: ResumeDocument[], id: string, parentId: string | undefined, kind?: ResumeKind): string | undefined {
+export function placementError(
+  documents: ResumeDocument[],
+  id: string,
+  parentId: string | undefined,
+  kind?: ResumeKind,
+): string | undefined {
   const byId = index(documents);
   const self = byId.get(id);
   const ownKind = kind ?? (self ? resumeKind(self) : 'base');
-  if (parentId === undefined) return ownKind === 'job' || !self ? undefined : subtreeHeight(id, documents, byId) + 1 > MAX_TREE_LEVELS ? `最多 ${MAX_TREE_LEVELS} 层` : undefined;
+  if (parentId === undefined)
+    return ownKind === 'job' || !self
+      ? undefined
+      : subtreeHeight(id, documents, byId) + 1 > MAX_TREE_LEVELS
+        ? `最多 ${MAX_TREE_LEVELS} 层`
+        : undefined;
   if (parentId === id) return '不能放在自己下面';
   const parent = byId.get(parentId);
   if (!parent) return '找不到要放入的简历';
@@ -54,17 +66,26 @@ export function placementError(documents: ResumeDocument[], id: string, parentId
 }
 
 /** Default placement for a copy of `sourceId`: under a base resume, or beside a copied job version. */
-export function defaultParentForCopy(documents: ResumeDocument[], sourceId: string, kind: ResumeKind = 'job'): string | undefined {
+export function defaultParentForCopy(
+  documents: ResumeDocument[],
+  sourceId: string,
+  kind: ResumeKind = 'job',
+): string | undefined {
   const byId = index(documents);
   const source = byId.get(sourceId);
   if (!source) return undefined;
   let candidate = resumeKind(source) === 'base' ? source.id : effectiveParentId(source, byId);
   // Climb until the copy fits within the level limit.
-  while (candidate && placementError(documents, '__new__', candidate, kind)) candidate = effectiveParentId(byId.get(candidate)!, byId);
+  while (candidate && placementError(documents, '__new__', candidate, kind))
+    candidate = effectiveParentId(byId.get(candidate)!, byId);
   return candidate;
 }
 
-export interface TreeNode { document: ResumeDocument; level: number; children: TreeNode[] }
+export interface TreeNode {
+  document: ResumeDocument;
+  level: number;
+  children: TreeNode[];
+}
 
 /**
  * Builds the display tree. Base resumes come before job versions; drafts before sent versions;
@@ -79,11 +100,21 @@ export function buildTree(documents: ResumeDocument[]): TreeNode[] {
     if (chain.length >= MAX_TREE_LEVELS) parent = chain[chain.length - MAX_TREE_LEVELS + 1];
     children.set(parent, [...(children.get(parent) ?? []), document]);
   }
-  const rank = (document: ResumeDocument) => resumeKind(document) === 'base' ? 0 : 1;
-  const sort = (list: ResumeDocument[]) => [...list].sort((a, b) => rank(a) - rank(b) || (resumeKind(a) === 'base' && rank(b) === 0 ? a.createdAt - b.createdAt : b.updatedAt - a.updatedAt));
-  const build = (parent: string | undefined, level: number, seen: Set<string>): TreeNode[] => sort(children.get(parent) ?? [])
-    .filter((document) => !seen.has(document.id))
-    .map((document) => ({ document, level, children: build(document.id, level + 1, new Set([...seen, document.id])) }));
+  const rank = (document: ResumeDocument) => (resumeKind(document) === 'base' ? 0 : 1);
+  const sort = (list: ResumeDocument[]) =>
+    [...list].sort(
+      (a, b) =>
+        rank(a) - rank(b) ||
+        (resumeKind(a) === 'base' && rank(b) === 0 ? a.createdAt - b.createdAt : b.updatedAt - a.updatedAt),
+    );
+  const build = (parent: string | undefined, level: number, seen: Set<string>): TreeNode[] =>
+    sort(children.get(parent) ?? [])
+      .filter((document) => !seen.has(document.id))
+      .map((document) => ({
+        document,
+        level,
+        children: build(document.id, level + 1, new Set([...seen, document.id])),
+      }));
   return build(undefined, 0, new Set());
 }
 
@@ -91,5 +122,12 @@ export function buildTree(documents: ResumeDocument[]): TreeNode[] {
 export function pathTo(documents: ResumeDocument[], id: string): ResumeDocument[] {
   const byId = index(documents);
   const self = byId.get(id);
-  return self ? [...ancestors(id, byId).reverse().map((ancestor) => byId.get(ancestor)!), self] : [];
+  return self
+    ? [
+        ...ancestors(id, byId)
+          .reverse()
+          .map((ancestor) => byId.get(ancestor)!),
+        self,
+      ]
+    : [];
 }

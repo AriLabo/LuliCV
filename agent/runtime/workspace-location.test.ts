@@ -4,9 +4,15 @@ import path from 'node:path';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { chooseWorkspace, isWorkspace, locateWorkspace, openWorkspace } from './workspace-location';
 
-let root: string; let env: NodeJS.ProcessEnv;
-beforeEach(async () => { root = await realpath(await mkdtemp(path.join(tmpdir(), 'resume-location-'))); env = { CVSLATE_HOME: path.join(root, 'home') }; });
-afterEach(async () => { await rm(root, { recursive: true, force: true }); });
+let root: string;
+let env: NodeJS.ProcessEnv;
+beforeEach(async () => {
+  root = await realpath(await mkdtemp(path.join(tmpdir(), 'resume-location-')));
+  env = { CVSLATE_HOME: path.join(root, 'home') };
+});
+afterEach(async () => {
+  await rm(root, { recursive: true, force: true });
+});
 
 it('uses the default workspace in the data directory until one is chosen, creating it on first use', async () => {
   const location = await locateWorkspace(undefined, env);
@@ -19,11 +25,21 @@ it('uses the default workspace in the data directory until one is chosen, creati
 });
 
 it('creates a workspace only in a new or empty directory, ignoring the files an OS drops into folders', async () => {
-  const empty = path.join(root, 'empty'); await mkdir(empty); await writeFile(path.join(empty, '.DS_Store'), '');
+  const empty = path.join(root, 'empty');
+  await mkdir(empty);
+  await writeFile(path.join(empty, '.DS_Store'), '');
   expect(await openWorkspace({ directory: empty, source: 'option' })).toBe(empty);
-  const used = path.join(root, 'used'); await mkdir(used); await writeFile(path.join(used, 'notes.txt'), 'fictitious');
-  await expect(chooseWorkspace(used, env)).rejects.toMatchObject({ code: 'VALIDATION_FAILED', message: expect.stringContaining(path.join(used, 'CVSlate')) });
-  await expect(chooseWorkspace(path.join(used, 'notes.txt'), env)).rejects.toMatchObject({ code: 'VALIDATION_FAILED', message: expect.stringContaining('不是目录') });
+  const used = path.join(root, 'used');
+  await mkdir(used);
+  await writeFile(path.join(used, 'notes.txt'), 'fictitious');
+  await expect(chooseWorkspace(used, env)).rejects.toMatchObject({
+    code: 'VALIDATION_FAILED',
+    message: expect.stringContaining(path.join(used, 'CVSlate')),
+  });
+  await expect(chooseWorkspace(path.join(used, 'notes.txt'), env)).rejects.toMatchObject({
+    code: 'VALIDATION_FAILED',
+    message: expect.stringContaining('不是目录'),
+  });
   // A refused choice leaves the previous one in place.
   expect((await locateWorkspace(undefined, env)).source).toBe('default');
 });
@@ -35,8 +51,12 @@ it('remembers the chosen workspace, accepts an existing one and reports one that
   // --workspace still names another one for a single command.
   expect((await locateWorkspace(path.join(root, 'other'), env)).source).toBe('option');
   // Moving the folder and choosing its new place keeps the same workspace.
-  const moved = path.join(root, 'moved'); await rename(chosen, moved);
-  await expect(openWorkspace(await locateWorkspace(undefined, env))).rejects.toMatchObject({ code: 'NOT_FOUND', message: expect.stringContaining('cvslate workspace <directory>') });
+  const moved = path.join(root, 'moved');
+  await rename(chosen, moved);
+  await expect(openWorkspace(await locateWorkspace(undefined, env))).rejects.toMatchObject({
+    code: 'NOT_FOUND',
+    message: expect.stringContaining('cvslate workspace <directory>'),
+  });
   await expect(isWorkspace(chosen)).resolves.toBe(false);
   const manifest = await readFile(path.join(moved, 'cvslate.json'), 'utf8');
   expect(await chooseWorkspace(moved, env)).toBe(moved);
@@ -48,6 +68,9 @@ it('asks for a new choice when the settings file is damaged', async () => {
   await mkdir(path.join(root, 'home'));
   for (const content of ['{', '{"workspace": "relative"}', '[]', 'null']) {
     await writeFile(path.join(root, 'home', 'settings.json'), content);
-    await expect(locateWorkspace(undefined, env)).rejects.toMatchObject({ code: 'STORAGE_FAILED', message: expect.stringContaining('cvslate workspace <directory>') });
+    await expect(locateWorkspace(undefined, env)).rejects.toMatchObject({
+      code: 'STORAGE_FAILED',
+      message: expect.stringContaining('cvslate workspace <directory>'),
+    });
   }
 });

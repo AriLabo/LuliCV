@@ -1,6 +1,6 @@
 # Privacy mode
 
-The user can hide their name, phone, email, photo and other fields from agents. You then see placeholders; the real values stay on this machine and appear only in a PDF the user approves in the web page. Work as usual on everything else.
+The user can hide their name, phone, email, photo and other fields. Reads through CVSlate's CLI or MCP then return placeholders; the real values stay on this machine and are filled in only in a PDF the user approves in the web page. Work as usual on everything else. The mode covers reads through CVSlate only: it does not stop an agent that has other access to the user's files, and it does not cover what an agent read before it was on. A user who wants it should turn it on first and type the details in 隐私信息, or remove them from an old file before an agent reads it.
 
 ## Recognize it
 
@@ -31,7 +31,7 @@ Only when the user asks: `cvslate privacy on` (default fields: name, phone, emai
 
 ## Export
 
-Export only a revision the user confirmed, after inspecting that same revision.
+Export the revision you inspected; the user approves it in the web page.
 
 - CLI: `cvslate export <id> --revision <N>`, no `--output`. It waits up to five minutes while the user decides, printing progress on stderr, and returns `{id, revision, pages, delivered: "browser"}`.
 - MCP: `export_resume_pdf({id, revision})`. It waits up to 50 seconds; if the user has not decided it returns `{status: "pending", requestId}`, so call it again with the same id, revision and that `requestId`.

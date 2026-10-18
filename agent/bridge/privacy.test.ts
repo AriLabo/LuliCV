@@ -14,35 +14,80 @@ const leaks = (value: unknown) => real.filter((text) => JSON.stringify(value).in
 const fields = ['name', 'phone', 'email', 'photo', 'links'];
 
 async function setup(options: { exportApprovalMs?: number } = {}) {
-  const root = await mkdtemp(path.join(tmpdir(), 'resume-privacy-')); await initializeWorkspace(root);
-  const dist = path.join(root, 'web'); await mkdir(dist); await writeFile(path.join(dist, 'index.html'), '<html><head></head><body>fixture</body></html>');
+  const root = await mkdtemp(path.join(tmpdir(), 'resume-privacy-'));
+  await initializeWorkspace(root);
+  const dist = path.join(root, 'web');
+  await mkdir(dist);
+  await writeFile(path.join(dist, 'index.html'), '<html><head></head><body>fixture</body></html>');
   const redactions: Array<Redaction | undefined> = [];
   // The fake renderer echoes real values the way a layout report could quote page text, and "exports" what it lays out.
-  const report = { pageCount: 1, issues: [{ code: 'overflow', page: 1, message: '张三 的联系方式 13800000000 超出页面' }] };
-  const renderer = (service: { get(id: string): Promise<ResumeDocument>; renderable(document: ResumeDocument): ResumeDocument }) => ({
+  const report = {
+    pageCount: 1,
+    issues: [{ code: 'overflow', page: 1, message: '张三 的联系方式 13800000000 超出页面' }],
+  };
+  const renderer = (service: {
+    get(id: string): Promise<ResumeDocument>;
+    renderable(document: ResumeDocument): ResumeDocument;
+  }) => ({
     inspect: async () => structuredClone(report),
-    preview: async (_id: string, _revision: number, redaction?: Redaction) => { redactions.push(redaction); return { report: structuredClone(report), pages: ['5byg5LiJ'] }; },
-    export: async (id: string) => ({ pdf: Buffer.from(JSON.stringify(service.renderable(await service.get(id)).data)), report }),
-    snapshot: () => { throw new Error('unused'); }, beginShutdown: () => {}, close: async () => {},
+    preview: async (_id: string, _revision: number, redaction?: Redaction) => {
+      redactions.push(redaction);
+      return { report: structuredClone(report), pages: ['5byg5LiJ'] };
+    },
+    export: async (id: string) => ({
+      pdf: Buffer.from(JSON.stringify(service.renderable(await service.get(id)).data)),
+      report,
+    }),
+    snapshot: () => {
+      throw new Error('unused');
+    },
+    beginShutdown: () => {},
+    close: async () => {},
   });
   const bridge = await startBridge({ workspace: root, dist, renderer: renderer as never, ...options });
   const cookie = await browserCookie(bridge.runtime);
-  const browserResponse = async (route: string, method = 'GET', value?: unknown) => fetch(bridge.origin + route, { method, headers: { Cookie: cookie, ...(value === undefined ? {} : { 'Content-Type': 'application/json' }) }, body: value === undefined ? undefined : JSON.stringify(value) });
-  const browser = async (route: string, method = 'GET', value?: unknown) => (await browserResponse(route, method, value)).json();
-  const agent = async (route: string, method = 'GET', value?: unknown) => (await bridgeRequest(bridge.runtime, route, method, value)).json();
-  const refused = (route: string, method = 'GET', value?: unknown) => bridgeRequest(bridge.runtime, route, method, value).then(() => 'allowed', (error) => error.code as string);
-  const exported = async (id: string, revision: number) => JSON.parse(await (await browserResponse(`/api/resumes/${id}/export`, 'POST', { revision })).text()) as ResumeDocument['data'];
+  const browserResponse = async (route: string, method = 'GET', value?: unknown) =>
+    fetch(bridge.origin + route, {
+      method,
+      headers: { Cookie: cookie, ...(value === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      body: value === undefined ? undefined : JSON.stringify(value),
+    });
+  const browser = async (route: string, method = 'GET', value?: unknown) =>
+    (await browserResponse(route, method, value)).json();
+  const agent = async (route: string, method = 'GET', value?: unknown) =>
+    (await bridgeRequest(bridge.runtime, route, method, value)).json();
+  const refused = (route: string, method = 'GET', value?: unknown) =>
+    bridgeRequest(bridge.runtime, route, method, value).then(
+      () => 'allowed',
+      (error) => error.code as string,
+    );
+  const exported = async (id: string, revision: number) =>
+    JSON.parse(
+      await (await browserResponse(`/api/resumes/${id}/export`, 'POST', { revision })).text(),
+    ) as ResumeDocument['data'];
   /** A resume with real values and an older revision, written before privacy mode was on. */
   const resume = async (name = '张三 · 后端') => {
-    const created = await agent('/api/resumes', 'POST', { name }) as ResumeDocument;
-    await agent(`/api/resumes/${created.id}`, 'PATCH', { baseRevision: 1, mutationId: 'old-phone', operations: [{ op: 'replace', path: '/data/basics/phone', value: '13700000000' }] });
-    return await agent(`/api/resumes/${created.id}`, 'PATCH', { baseRevision: 2, mutationId: 'details', operations: [
-      { op: 'replace', path: '/data/basics/phone', value: '13800000000' },
-      // Room for one more link under the limit of three.
-      { op: 'remove', path: '/data/basics/links/0' },
-      { op: 'add', path: '/data/basics/links/-', value: { id: 'files', label: '作品', url: 'ftp://files.example-zs.net' } },
-      { op: 'replace', path: '/data/sections/0/text', value: '联系 张三，电话 138 0000 0000' },
-    ] }) as ResumeDocument;
+    const created = (await agent('/api/resumes', 'POST', { name })) as ResumeDocument;
+    await agent(`/api/resumes/${created.id}`, 'PATCH', {
+      baseRevision: 1,
+      mutationId: 'old-phone',
+      operations: [{ op: 'replace', path: '/data/basics/phone', value: '13700000000' }],
+    });
+    return (await agent(`/api/resumes/${created.id}`, 'PATCH', {
+      baseRevision: 2,
+      mutationId: 'details',
+      operations: [
+        { op: 'replace', path: '/data/basics/phone', value: '13800000000' },
+        // Room for one more link under the limit of three.
+        { op: 'remove', path: '/data/basics/links/0' },
+        {
+          op: 'add',
+          path: '/data/basics/links/-',
+          value: { id: 'files', label: '作品', url: 'ftp://files.example-zs.net' },
+        },
+        { op: 'replace', path: '/data/sections/0/text', value: '联系 张三，电话 138 0000 0000' },
+      ],
+    })) as ResumeDocument;
   };
   return { root, bridge, browser, browserResponse, agent, refused, exported, resume, redactions };
 }
@@ -68,14 +113,28 @@ it('moves the values out of the resumes and shows placeholders to everyone; only
       inspect: await agent(`${route}/inspect`, 'POST', { revision: 4 }),
       preview: await agent(`${route}/preview`, 'POST', { revision: 4 }),
       privacy: await agent('/api/privacy'),
-      error: await bridgeRequest(bridge.runtime, '/api/resumes/13800000000').catch((error) => ({ code: error.code, message: error.message })),
+      error: await bridgeRequest(bridge.runtime, '/api/resumes/13800000000').catch((error) => ({
+        code: error.code,
+        message: error.message,
+      })),
       browserGet: await browser(route),
       browserOldRevision: await browser(`${route}?revision=2`),
       browserList: await browser('/api/resumes'),
       browserPrivacy: await browser('/api/privacy'),
     };
     for (const [name, value] of Object.entries(reads)) expect(leaks(value), name).toEqual([]);
-    expect(reads.get).toMatchObject({ revision: 4, data: { basics: { name: '{{private:name}}', phone: '{{private:phone}}', email: '{{private:email}}', links: [{ url: '{{private:link:link-github}}' }, { url: '{{private:link:files}}' }] } }, privacy: { mode: true, fields } });
+    expect(reads.get).toMatchObject({
+      revision: 4,
+      data: {
+        basics: {
+          name: '{{private:name}}',
+          phone: '{{private:phone}}',
+          email: '{{private:email}}',
+          links: [{ url: '{{private:link:link-github}}' }, { url: '{{private:link:files}}' }],
+        },
+      },
+      privacy: { mode: true, fields },
+    });
     expect(reads.get.data.sections[0].text).toBe('联系 {{private:name}}，电话 {{private:phone}}');
     expect(reads.browserGet).toMatchObject({ data: { basics: { name: '{{private:name}}' } } });
     expect(reads.browserGet.privacy).toBeUndefined();
@@ -86,13 +145,30 @@ it('moves the values out of the resumes and shows placeholders to everyone; only
     // Validation checks the values the export will have, without quoting them.
     expect(reads.validate.errors).toEqual([]);
     // The web page learns how long each value is, to size its label; agents only whether it is filled.
-    expect(reads.browserPrivacy.values.fields.name).toEqual({ filled: true, length: 2, shape: { han: 2, digit: 0, latin: 0, other: 0 } });
-    expect(reads.privacy.values.fields).toEqual({ name: { filled: true }, phone: { filled: true }, email: { filled: true }, photo: { filled: false } });
+    expect(reads.browserPrivacy.values.fields.name).toEqual({
+      filled: true,
+      length: 2,
+      shape: { han: 2, digit: 0, latin: 0, other: 0 },
+    });
+    expect(reads.privacy.values.fields).toEqual({
+      name: { filled: true },
+      phone: { filled: true },
+      email: { filled: true },
+      photo: { filled: false },
+    });
 
     const pdf = await exported(before.id, 4);
-    expect(pdf.basics).toMatchObject({ name: '张三', phone: '13800000000', email: 'example@example.com', links: [{ url: 'https://github.com/example' }, { url: 'ftp://files.example-zs.net' }] });
+    expect(pdf.basics).toMatchObject({
+      name: '张三',
+      phone: '13800000000',
+      email: 'example@example.com',
+      links: [{ url: 'https://github.com/example' }, { url: 'ftp://files.example-zs.net' }],
+    });
     expect(pdf.sections[0].text).toBe('联系 张三，电话 13800000000');
-  } finally { await bridge.close(); await rm(root, { recursive: true, force: true }); }
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 it('stores real values written into a resume as placeholders, and refuses ones it cannot place', async () => {
@@ -102,29 +178,58 @@ it('stores real values written into a resume as placeholders, and refuses ones i
     const route = `/api/resumes/${id}`;
     await agent('/api/privacy', 'PUT', { enabled: true, fields });
 
-    const edited = await agent(route, 'PATCH', { baseRevision: 4, mutationId: 'edit', operations: [
-      { op: 'replace', path: '/data/basics/headline', value: '{{private:name}} · 电话 138-0000-0000' },
-      { op: 'add', path: '/data/basics/links/-', value: { id: 'blog', label: '博客', url: 'https://blog.example-zs.net' } },
-    ] });
+    const edited = await agent(route, 'PATCH', {
+      baseRevision: 4,
+      mutationId: 'edit',
+      operations: [
+        { op: 'replace', path: '/data/basics/headline', value: '{{private:name}} · 电话 138-0000-0000' },
+        {
+          op: 'add',
+          path: '/data/basics/links/-',
+          value: { id: 'blog', label: '博客', url: 'https://blog.example-zs.net' },
+        },
+      ],
+    });
     expect(edited.data.basics.headline).toBe('{{private:name}} · 电话 {{private:phone}}');
     expect(edited.data.basics.links[2].url).toBe('{{private:link:blog}}');
-    expect(edited.privacy.changes).toEqual(['链接「博客」的地址已收进隐私信息，简历里换成 {{private:link:blog}}', '写入的电话已换成 {{private:phone}}']);
+    expect(edited.privacy.changes).toEqual([
+      '链接「博客」的地址已收进隐私信息，简历里换成 {{private:link:blog}}',
+      '写入的电话已换成 {{private:phone}}',
+    ]);
     expect(JSON.stringify(edited)).not.toContain('blog.example-zs.net');
     expect((await exported(id, 5)).basics.links[2].url).toBe('https://blog.example-zs.net');
 
     // Copying a token is fine, including into a copy's name.
     const copy = await agent(`${route}/duplicate`, 'POST', { name: '{{private:name}} · 前端', mutationId: 'copy' });
     expect(copy.name).toBe('{{private:name}} · 前端');
-    expect(await agent('/api/resumes', 'POST', { name: '{{private:name}} 的新简历' })).toMatchObject({ name: '{{private:name}} 的新简历' });
+    expect(await agent('/api/resumes', 'POST', { name: '{{private:name}} 的新简历' })).toMatchObject({
+      name: '{{private:name}} 的新简历',
+    });
 
     let attempt = 0;
-    const write = (value: unknown, path = '/data/basics/phone') => bridgeRequest(bridge.runtime, route, 'PATCH', { baseRevision: 5, mutationId: `w-${++attempt}`, operations: [{ op: 'replace', path, value }] }).then(() => 'allowed', (error) => `${error.code}: ${error.message}`);
+    const write = (value: unknown, path = '/data/basics/phone') =>
+      bridgeRequest(bridge.runtime, route, 'PATCH', {
+        baseRevision: 5,
+        mutationId: `w-${++attempt}`,
+        operations: [{ op: 'replace', path, value }],
+      }).then(
+        () => 'allowed',
+        (error) => `${error.code}: ${error.message}`,
+      );
     expect(await write('13911112222')).toMatch(/^VALIDATION_FAILED: 电话是隐私字段/);
-    expect(await write('{{private:salary}}', '/data/basics/headline')).toMatch(/^VALIDATION_FAILED: \{\{private:salary\}\} 不是可用的隐私占位/);
+    expect(await write('{{private:salary}}', '/data/basics/headline')).toMatch(
+      /^VALIDATION_FAILED: \{\{private:salary\}\} 不是可用的隐私占位/,
+    );
     expect(await write('{{private:link}}', '/data/basics/headline')).toMatch(/^VALIDATION_FAILED/);
     expect(await write('13911112222')).not.toContain('13911112222');
     // The web page follows the same rules.
-    expect(await browser(route, 'PATCH', { baseRevision: 5, mutationId: 'browser', operations: [{ op: 'replace', path: '/data/basics/phone', value: '13911112222' }] })).toMatchObject({ code: 'VALIDATION_FAILED' });
+    expect(
+      await browser(route, 'PATCH', {
+        baseRevision: 5,
+        mutationId: 'browser',
+        operations: [{ op: 'replace', path: '/data/basics/phone', value: '13911112222' }],
+      }),
+    ).toMatchObject({ code: 'VALIDATION_FAILED' });
 
     // Restoring a revision from before privacy mode stores placeholders, not the old values.
     const restored = await browser(`/api/resumes/${id}/restore`, 'POST', { baseRevision: 5, mutationId: 'undo' });
@@ -134,29 +239,58 @@ it('stores real values written into a resume as placeholders, and refuses ones i
     // Turned off, every resume gets its values back, and a tokenized revision restored later too.
     expect(await agent(route)).toMatchObject({ data: { basics: { name: '张三', phone: '13800000000' } } });
     const undone = await agent(`/api/resumes/${id}/restore`, 'POST', { baseRevision: 7, mutationId: 'undo-off' });
-    expect(undone.data.basics).toMatchObject({ name: '张三', phone: '13800000000', links: [{ url: 'https://github.com/example' }, { url: 'ftp://files.example-zs.net' }] });
-  } finally { await bridge.close(); await rm(root, { recursive: true, force: true }); }
+    expect(undone.data.basics).toMatchObject({
+      name: '张三',
+      phone: '13800000000',
+      links: [{ url: 'https://github.com/example' }, { url: 'ftp://files.example-zs.net' }],
+    });
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 it('asks the person which value to export when resumes disagree', async () => {
   const { root, bridge, browser, agent, refused, resume } = await setup();
   try {
     await resume();
-    const other = await agent('/api/resumes', 'POST', { name: '张三 · 前端' }) as ResumeDocument;
-    await agent(`/api/resumes/${other.id}`, 'PATCH', { baseRevision: 1, mutationId: 'phone', operations: [{ op: 'replace', path: '/data/basics/phone', value: '13911112222' }] });
+    const other = (await agent('/api/resumes', 'POST', { name: '张三 · 前端' })) as ResumeDocument;
+    await agent(`/api/resumes/${other.id}`, 'PATCH', {
+      baseRevision: 1,
+      mutationId: 'phone',
+      operations: [{ op: 'replace', path: '/data/basics/phone', value: '13911112222' }],
+    });
 
     const plan = await browser('/api/privacy/plan', 'POST', { enabled: true, fields });
-    expect(plan.conflicts).toEqual([{ field: 'phone', label: '电话', options: [{ value: '13800000000', resumes: 1, mentions: 1 }, { value: '13911112222', resumes: 1, mentions: 0 }] }]);
+    expect(plan.conflicts).toEqual([
+      {
+        field: 'phone',
+        label: '电话',
+        options: [
+          { value: '13800000000', resumes: 1, mentions: 1 },
+          { value: '13911112222', resumes: 1, mentions: 0 },
+        ],
+      },
+    ]);
     expect(await browser('/api/privacy')).toMatchObject({ enabled: false });
     expect(await refused('/api/privacy', 'PUT', { enabled: true, fields })).toBe('VALIDATION_FAILED');
-    expect(await refused('/api/privacy', 'PUT', { enabled: true, fields, choices: { phone: '13911112222' } })).toBe('PRIVACY_MODE');
-    expect(await browser('/api/privacy', 'PUT', { enabled: true, fields, choices: { phone: 'nope' } })).toEqual({ code: 'VALIDATION_FAILED', message: '电话在几份简历里不一样，请选择导出时统一用哪个' });
+    expect(await refused('/api/privacy', 'PUT', { enabled: true, fields, choices: { phone: '13911112222' } })).toBe(
+      'PRIVACY_MODE',
+    );
+    expect(await browser('/api/privacy', 'PUT', { enabled: true, fields, choices: { phone: 'nope' } })).toEqual({
+      code: 'VALIDATION_FAILED',
+      message: '电话在几份简历里不一样，请选择导出时统一用哪个',
+    });
     expect(await browser('/api/privacy')).toMatchObject({ enabled: false });
 
     const enabled = await browser('/api/privacy', 'PUT', { enabled: true, fields, choices: { phone: '13911112222' } });
     expect(enabled).toMatchObject({ enabled: true, conflicts: [] });
-    for (const document of await agent('/api/resumes') as ResumeDocument[]) expect(document.data.basics.phone).toBe('{{private:phone}}');
-  } finally { await bridge.close(); await rm(root, { recursive: true, force: true }); }
+    for (const document of (await agent('/api/resumes')) as ResumeDocument[])
+      expect(document.data.basics.phone).toBe('{{private:phone}}');
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 it('keeps the values with the person: agents cannot read, change, export or turn them off', async () => {
@@ -164,8 +298,15 @@ it('keeps the values with the person: agents cannot read, change, export or turn
   try {
     const { id } = await resume();
     await agent('/api/privacy', 'PUT', { enabled: true, fields: ['name', 'phone'] });
-    expect(await agent('/api/privacy', 'PUT', { enabled: true, fields: ['name', 'phone', 'email'] })).toMatchObject({ enabled: true, fields: ['name', 'phone', 'email'] });
-    for (const loosen of [{ enabled: false, fields: ['name', 'phone', 'email'] }, { enabled: true, fields: ['name'] }]) expect(await refused('/api/privacy', 'PUT', loosen)).toBe('PRIVACY_MODE');
+    expect(await agent('/api/privacy', 'PUT', { enabled: true, fields: ['name', 'phone', 'email'] })).toMatchObject({
+      enabled: true,
+      fields: ['name', 'phone', 'email'],
+    });
+    for (const loosen of [
+      { enabled: false, fields: ['name', 'phone', 'email'] },
+      { enabled: true, fields: ['name'] },
+    ])
+      expect(await refused('/api/privacy', 'PUT', loosen)).toBe('PRIVACY_MODE');
     expect(await refused('/api/privacy/values', 'PUT', { key: 'phone', value: '13911112222' })).toBe('PRIVACY_MODE');
     expect(await refused(`/api/resumes/${id}/export`, 'POST', { revision: 4 })).toBe('SNAPSHOT_UNAVAILABLE');
     expect(await refused('/api/backup')).toBe('PRIVACY_MODE');
@@ -173,26 +314,43 @@ it('keeps the values with the person: agents cannot read, change, export or turn
 
     // The person replaces a value in the web page; it is never sent back, and the export uses the new one.
     const saved = await browser('/api/privacy/values', 'PUT', { key: 'phone', value: '13911112222' });
-    expect(saved.values.fields.phone).toEqual({ filled: true, length: 11, shape: { han: 0, digit: 11, latin: 0, other: 0 } });
+    expect(saved.values.fields.phone).toEqual({
+      filled: true,
+      length: 11,
+      shape: { han: 0, digit: 11, latin: 0, other: 0 },
+    });
     expect(JSON.stringify(saved)).not.toContain('13911112222');
-    expect(await browser('/api/privacy/values', 'PUT', { key: 'location', value: '杭州' })).toMatchObject({ code: 'VALIDATION_FAILED' });
+    expect(await browser('/api/privacy/values', 'PUT', { key: 'location', value: '杭州' })).toMatchObject({
+      code: 'VALIDATION_FAILED',
+    });
     expect((await exported(id, 5)).basics.phone).toBe('13911112222');
     // The replaced value stays covered wherever an old revision still has it.
     expect(JSON.stringify(await agent(`/api/resumes/${id}?revision=3`))).not.toContain('13800000000');
 
-    expect(await browser('/api/privacy', 'PUT', { enabled: false, fields: ['name'] })).toMatchObject({ enabled: false });
-    expect(await agent(`/api/resumes/${id}`)).toMatchObject({ data: { basics: { name: '张三', phone: '13911112222', email: 'example@example.com' } } });
+    expect(await browser('/api/privacy', 'PUT', { enabled: false, fields: ['name'] })).toMatchObject({
+      enabled: false,
+    });
+    expect(await agent(`/api/resumes/${id}`)).toMatchObject({
+      data: { basics: { name: '张三', phone: '13911112222', email: 'example@example.com' } },
+    });
     expect((await agent(`/api/resumes/${id}`)).privacy).toBeUndefined();
-  } finally { await bridge.close(); await rm(root, { recursive: true, force: true }); }
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 it('exports for an agent only after the person approves the requested revision, and logs every outcome', async () => {
   const { root, bridge, browser, browserResponse, agent, refused, resume } = await setup({ exportApprovalMs: 1500 });
-  const request = async (id: string, revision: number) => { const response = await bridgeRequest(bridge.runtime, `/api/resumes/${id}/export`, 'POST', { revision }); expect(response.status).toBe(202); return response.json(); };
+  const request = async (id: string, revision: number) => {
+    const response = await bridgeRequest(bridge.runtime, `/api/resumes/${id}/export`, 'POST', { revision });
+    expect(response.status).toBe(202);
+    return response.json();
+  };
   try {
     const { id } = await resume();
     await agent('/api/privacy', 'PUT', { enabled: true, fields: ['name', 'phone'] });
-    let revision = (await agent(`/api/resumes/${id}`) as ResumeDocument).revision;
+    let revision = ((await agent(`/api/resumes/${id}`)) as ResumeDocument).revision;
     expect(await refused(`/api/resumes/${id}/export`, 'POST', { revision: revision - 1 })).toBe('SNAPSHOT_UNAVAILABLE');
 
     // The request waits for the person; asking again joins it, and nothing else can be asked meanwhile.
@@ -200,10 +358,20 @@ it('exports for an agent only after the person approves the requested revision, 
     expect(first).toMatchObject({ status: 'pending', id, revision, pages: 1, webOpen: false });
     expect(first.message).toContain('没有打开的 CVSlate 网页');
     expect((await request(id, revision)).requestId).toBe(first.requestId);
-    const other = await agent('/api/resumes', 'POST', { name: '备用' }) as ResumeDocument;
+    const other = (await agent('/api/resumes', 'POST', { name: '备用' })) as ResumeDocument;
     expect(await refused(`/api/resumes/${other.id}/export`, 'POST', { revision: 1 })).toBe('EXPORT_PENDING');
     const pending = (await browser('/api/export-requests')).requests;
-    expect(pending).toMatchObject([{ requestId: first.requestId, resumeId: id, revision, pages: 1, fields: ['name', 'phone'], changed: false, status: 'pending' }]);
+    expect(pending).toMatchObject([
+      {
+        requestId: first.requestId,
+        resumeId: id,
+        revision,
+        pages: 1,
+        fields: ['name', 'phone'],
+        changed: false,
+        status: 'pending',
+      },
+    ]);
     expect(leaks(pending)).toEqual([]);
     expect(await agent(`/api/export-requests/${first.requestId}?wait=50`)).toMatchObject({ status: 'pending' });
 
@@ -214,21 +382,40 @@ it('exports for an agent only after the person approves the requested revision, 
     expect(approved.headers.get('x-resume-pages')).toBe('1');
     expect(JSON.parse(await approved.text()).basics.phone).toBe('13800000000');
     const done = await agent(`/api/export-requests/${first.requestId}?wait=1000`);
-    expect(done).toMatchObject({ requestId: first.requestId, status: 'approved', id, revision, pages: 1, message: 'PDF 已交给用户的浏览器下载，共 1 页；用户没收到文件（比如在保存对话框里取消了）可以再请求一次' });
+    expect(done).toMatchObject({
+      requestId: first.requestId,
+      status: 'approved',
+      id,
+      revision,
+      pages: 1,
+      message: 'PDF 已交给用户的浏览器下载，共 1 页；用户没收到文件（比如在保存对话框里取消了）可以再请求一次',
+    });
     expect((await browser(`/api/export-requests/${first.requestId}/approve`, 'POST', {})).code).toBe('EXPORT_DECLINED');
 
     // Declined: the waiting agent hears it at once.
     const second = await request(id, revision);
     expect(second.requestId).not.toBe(first.requestId);
     const waiting = refused(`/api/export-requests/${second.requestId}?wait=5000`);
-    expect(await browser(`/api/export-requests/${second.requestId}/decline`, 'POST', {})).toEqual({ status: 'declined' });
+    expect(await browser(`/api/export-requests/${second.requestId}/decline`, 'POST', {})).toEqual({
+      status: 'declined',
+    });
     expect(await waiting).toBe('EXPORT_DECLINED');
 
     // A save after the request: the requested revision can no longer be approved.
     const third = await request(id, revision);
-    revision = (await agent(`/api/resumes/${id}`, 'PATCH', { baseRevision: revision, mutationId: 'headline', operations: [{ op: 'replace', path: '/data/basics/headline', value: '后端工程师' }] }) as ResumeDocument).revision;
-    expect((await browser('/api/export-requests')).requests).toMatchObject([{ requestId: third.requestId, changed: true }]);
-    expect((await browser(`/api/export-requests/${third.requestId}/approve`, 'POST', {})).code).toBe('REVISION_CONFLICT');
+    revision = (
+      (await agent(`/api/resumes/${id}`, 'PATCH', {
+        baseRevision: revision,
+        mutationId: 'headline',
+        operations: [{ op: 'replace', path: '/data/basics/headline', value: '后端工程师' }],
+      })) as ResumeDocument
+    ).revision;
+    expect((await browser('/api/export-requests')).requests).toMatchObject([
+      { requestId: third.requestId, changed: true },
+    ]);
+    expect((await browser(`/api/export-requests/${third.requestId}/approve`, 'POST', {})).code).toBe(
+      'REVISION_CONFLICT',
+    );
     await browser(`/api/export-requests/${third.requestId}/decline`, 'POST', {});
 
     // Nobody answers: the request expires and counts as declined.
@@ -239,7 +426,22 @@ it('exports for an agent only after the person approves the requested revision, 
     // The person's own export is logged too, with the name as stored.
     await browserResponse(`/api/resumes/${id}/export`, 'POST', { revision });
     const log = (await browser('/api/export-log')).exports;
-    expect(log.map((entry: { outcome: string; revision: number; pages?: number }) => [entry.outcome, entry.revision, entry.pages])).toEqual([['web', revision, 1], ['expired', revision, undefined], ['declined', revision - 1, undefined], ['declined', revision - 1, undefined], ['approved', revision - 1, 1]]);
+    expect(
+      log.map((entry: { outcome: string; revision: number; pages?: number }) => [
+        entry.outcome,
+        entry.revision,
+        entry.pages,
+      ]),
+    ).toEqual([
+      ['web', revision, 1],
+      ['expired', revision, undefined],
+      ['declined', revision - 1, undefined],
+      ['declined', revision - 1, undefined],
+      ['approved', revision - 1, 1],
+    ]);
     expect(leaks(log)).toEqual([]);
-  } finally { await bridge.close(); await rm(root, { recursive: true, force: true }); }
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
 });

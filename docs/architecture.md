@@ -22,7 +22,7 @@ agent/bridge/sqlite-repository.ts 是 Node-only adapter。数据库表为 worksp
 
 数据库 schema 版本与内容 schema 分离。新数据库事务建表，过新的数据库拒绝打开。运行时要求 Node 自带 SQLite 3.51.3+（该版本包含 WAL-reset 修复；Node 22.22.3+、24.15+、26+ 满足），只检查 SQLite 版本，foreign_keys ON、WAL、synchronous FULL、有限 busy timeout。Workspace 进程锁保留，SQLite 事务锁不是 Bridge singleton。备份与离线恢复见 Skill 的 [recovery.md](../skills/cvslate/references/recovery.md)。
 
-当前在 SQLite 保存所有版本是持久化机制，首版只有上一版本恢复，没有完整 History UI。照片仍为本地 data URL；Browser/Workspace 不双写。无任意文件手改同步、自动合并、Hosted、ATS scoring或内置 AI。本地 stdio MCP 只连接已有 Bridge，不成为第二个数据库写者；工具与配置见 [mcp.md](mcp.md)。
+SQLite 保存每份简历的所有版本，网页的修订记录可以查看历史版本、比较差异、撤销和重做。照片仍为本地 data URL；Browser/Workspace 不双写。无任意文件手改同步、自动合并、Hosted、ATS scoring或内置 AI。本地 stdio MCP 和 CLI 一样，Bridge 没运行时在后台启动一个，自己只通过 HTTP 调用 Bridge，不成为第二个数据库写者；工具与配置见 [mcp.md](mcp.md)。
 
 ## 存储与事务约束
 

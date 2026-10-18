@@ -4,15 +4,26 @@ import path from 'node:path';
 
 // Screenshots cover the A4 page only; the sticky preview toolbar must not overlap it.
 async function hideChrome(page: Page) {
-  await page.locator('.preview-pane .studio-chrome').evaluateAll((elements) => elements.forEach((element) => { (element as HTMLElement).style.display = 'none'; }));
+  await page.locator('.preview-pane .studio-chrome').evaluateAll((elements) =>
+    elements.forEach((element) => {
+      (element as HTMLElement).style.display = 'none';
+    }),
+  );
 }
 
 async function showChrome(page: Page) {
-  await page.locator('.preview-pane .studio-chrome').evaluateAll((elements) => elements.forEach((element) => { (element as HTMLElement).style.display = ''; }));
+  await page.locator('.preview-pane .studio-chrome').evaluateAll((elements) =>
+    elements.forEach((element) => {
+      (element as HTMLElement).style.display = '';
+    }),
+  );
 }
 
 // A fictitious, light silhouette used wherever a test needs a photo.
-const PHOTO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAHgAAACcCAMAAACDb590AAAASFBMVEXr7/Tr7vPq7vPp7vPq7fLp7fLp7fHo7fLp7PHo7PHn7PHl6e/i5+3a3+bR19/Gzti8xdC6ws65ws65wc24wc23wc23wMy2wMxjrbEbAAADzklEQVR42u2b23LjIAyGMWvSGoeDKcHv/6YLJN3tAQfhSE53Fs10pnff/CChk8OmJxnr4A7u4A7u4A7u4A7u4A7u4A7uYDKwnES2+M+hYMHH+ZxMDvx0HJjLs9Y2m9FqjroPAfNJGeuDzxbWxeozF/Tgk1TGBe8Wd7XF+RDRghrM54h1X8x7qxgteFTmGzbZxepZEIK5skVutNW0kZvAQlnvtiyYmQrMz3e4UbNmNGAxm3tc56wSJOBRr3e5LtiGqIKDxf2Dzr6tRwIw15cK1/kGyQxRcJKMDpZchyo3SgYHM1ixNACwWxRHBoNO2i0B7F4Mz7XazhoIloMOyzPA8Yo9RPHbonDBsCuOl7xqLp8CDh38z4JnGDi+1rjgmIwD7AE5Iz8gHPqAIINjnQfhxopPviCDYZcMvmJ4WhwhZ91QgoDBXMFOmqDKhFQC4DqgpdhTAME0nURdMlxwC5irimO3CG7rnVSFO9O0MJXDjs05J1Kc2rZN8qWN26g4kp1fEPQ2jyJOU3Em4FfTOn5pnvrwNPRxy5fZi57HiRg8jVOeN3m3JHM+pGkTfz1isscnpa29rCGk8ZrZNV/bOctMk0ydTc1yD3b/9FYIPnAe//bOb/fPq2W2/2dQ3sEdTAV+X8KkNcxRcSzz43FbwuQ1zK5HpBksbs+lte9rmPRsDryV3QjmPC9+YoLwN7slCjVxwtVATkshp8QPvXhKjatrTVKsCftp8fNpEuCuaZlgXn3N/+5O45b3T9gtzOu14qk1i6kG4pjgcdYWNooIBlhtgsDibFYHmgikxYSaTkjgatP0WbQzkJKzDk6l9MW1WIAU2VVwbh5cm0HaClbnBtdsgEaKUXAhmmuK93EBZPb4qGdfm87w4qiNzKi4tZEIw3cs2BCIETgWyMG2waNyj9q9a2aPLgPuk7c3fptg4E5v9zSX0Xj0n7fTNCt+1LNqns3QnyxgMDNiwZuSGa3gbcllsMQTvCWZkcXwh6UfHKw9nuCNWGbF7GARwa6852RF11ocJtgAj1qgulZ2r18wMO5Jb+yUWfGk31AFewO74xG2sX3Qrxn5ScezLu1YGenr8fcLoDpYxgoA96TLH+J8B6NfcfmSGf0VXxfpdfAZH1yK5EPApWqTFXwLnVvyrgIY3beK3vVjwNBva9DBJNFU+jCFHeHUpXjq4A7u4A4GgtcqeEJvI5IVPkL+lp0Gmuz0o/Px+px8LLA7p+u4Sz6lvH1alQkCQz/TfzCaCnE84HsXqHei8C5f+Ab5kP541QOgP35Bv+TirzYKzjXgjyIKG4Lfx4d1VDvKFrsAAAAASUVORK5CYII=', 'base64');
+const PHOTO = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAHgAAACcCAMAAACDb590AAAASFBMVEXr7/Tr7vPq7vPp7vPq7fLp7fLp7fHo7fLp7PHo7PHn7PHl6e/i5+3a3+bR19/Gzti8xdC6ws65ws65wc24wc23wc23wMy2wMxjrbEbAAADzklEQVR42u2b23LjIAyGMWvSGoeDKcHv/6YLJN3tAQfhSE53Fs10pnff/CChk8OmJxnr4A7u4A7u4A7u4A7u4A7u4A7uYDKwnES2+M+hYMHH+ZxMDvx0HJjLs9Y2m9FqjroPAfNJGeuDzxbWxeozF/Tgk1TGBe8Wd7XF+RDRghrM54h1X8x7qxgteFTmGzbZxepZEIK5skVutNW0kZvAQlnvtiyYmQrMz3e4UbNmNGAxm3tc56wSJOBRr3e5LtiGqIKDxf2Dzr6tRwIw15cK1/kGyQxRcJKMDpZchyo3SgYHM1ixNACwWxRHBoNO2i0B7F4Mz7XazhoIloMOyzPA8Yo9RPHbonDBsCuOl7xqLp8CDh38z4JnGDi+1rjgmIwD7AE5Iz8gHPqAIINjnQfhxopPviCDYZcMvmJ4WhwhZ91QgoDBXMFOmqDKhFQC4DqgpdhTAME0nURdMlxwC5irimO3CG7rnVSFO9O0MJXDjs05J1Kc2rZN8qWN26g4kp1fEPQ2jyJOU3Em4FfTOn5pnvrwNPRxy5fZi57HiRg8jVOeN3m3JHM+pGkTfz1isscnpa29rCGk8ZrZNV/bOctMk0ydTc1yD3b/9FYIPnAe//bOb/fPq2W2/2dQ3sEdTAV+X8KkNcxRcSzz43FbwuQ1zK5HpBksbs+lte9rmPRsDryV3QjmPC9+YoLwN7slCjVxwtVATkshp8QPvXhKjatrTVKsCftp8fNpEuCuaZlgXn3N/+5O45b3T9gtzOu14qk1i6kG4pjgcdYWNooIBlhtgsDibFYHmgikxYSaTkjgatP0WbQzkJKzDk6l9MW1WIAU2VVwbh5cm0HaClbnBtdsgEaKUXAhmmuK93EBZPb4qGdfm87w4qiNzKi4tZEIw3cs2BCIETgWyMG2waNyj9q9a2aPLgPuk7c3fptg4E5v9zSX0Xj0n7fTNCt+1LNqns3QnyxgMDNiwZuSGa3gbcllsMQTvCWZkcXwh6UfHKw9nuCNWGbF7GARwa6852RF11ocJtgAj1qgulZ2r18wMO5Jb+yUWfGk31AFewO74xG2sX3Qrxn5ScezLu1YGenr8fcLoDpYxgoA96TLH+J8B6NfcfmSGf0VXxfpdfAZH1yK5EPApWqTFXwLnVvyrgIY3beK3vVjwNBva9DBJNFU+jCFHeHUpXjq4A7u4A4GgtcqeEJvI5IVPkL+lp0Gmuz0o/Px+px8LLA7p+u4Sz6lvH1alQkCQz/TfzCaCnE84HsXqHei8C5f+Ab5kP541QOgP35Bv+TirzYKzjXgjyIKG4Lfx4d1VDvKFrsAAAAASUVORK5CYII=',
+  'base64',
+);
 
 async function ready(page: Page) {
   await page.goto('/');
@@ -46,7 +57,9 @@ async function setting(page: Page, label: string, value: string) {
 test('标准主题 一页 / 标准密度 / 无照片', async ({ page }) => {
   await ready(page);
   await expect(page.locator('.page-wrap.rs-theme--standard .rs-name')).toHaveText('张三');
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('standard-balanced-no-photo.png');
 });
 
@@ -65,26 +78,36 @@ test('标准主题的页眉、联系方式和标题线设置只改外观并保�
   await page.getByText('页面与排版').click();
   await expect(page.getByRole('checkbox', { name: '显示照片' })).toBeChecked();
   await page.keyboard.press('Escape');
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('standard-options-photo.png');
   await mkdir(path.resolve('tmp/pdfs'), { recursive: true });
-  const pdf = await page.pdf({ path: path.resolve('tmp/pdfs/standard-options.pdf'), format: 'A4', printBackground: true, preferCSSPageSize: true });
+  const pdf = await page.pdf({
+    path: path.resolve('tmp/pdfs/standard-options.pdf'),
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+  });
   expect(pdf.byteLength).toBeGreaterThan(10_000);
 });
 
 test('三页母版会舒展页内节奏但保留安全页底', async ({ page }) => {
   await ready(page);
   const section = page.locator('[data-section-type="experience"]');
-  for (let index = 0; index < 30; index += 1) await section.getByRole('button', { name: '复制', exact: true }).first().click();
+  for (let index = 0; index < 30; index += 1)
+    await section.getByRole('button', { name: '复制', exact: true }).first().click();
   await expect.poll(() => page.locator('[data-a4-page]').count()).toBeGreaterThanOrEqual(3);
   const pageCount = await page.locator('[data-a4-page]').count();
   await expect(page.locator('.page-wrap--balanced-flow')).toHaveCount(pageCount);
   await expect(page.getByText('排版检查通过')).toBeVisible();
-  const bottomSpaces = await page.locator('[data-page-inner]').evaluateAll((pages) => pages.map((inner) => {
-    const innerRect = inner.getBoundingClientRect();
-    const finalBlock = inner.lastElementChild?.lastElementChild ?? inner.lastElementChild;
-    return finalBlock ? innerRect.bottom - finalBlock.getBoundingClientRect().bottom : innerRect.height;
-  }));
+  const bottomSpaces = await page.locator('[data-page-inner]').evaluateAll((pages) =>
+    pages.map((inner) => {
+      const innerRect = inner.getBoundingClientRect();
+      const finalBlock = inner.lastElementChild?.lastElementChild ?? inner.lastElementChild;
+      return finalBlock ? innerRect.bottom - finalBlock.getBoundingClientRect().bottom : innerRect.height;
+    }),
+  );
   expect(bottomSpaces.every((space) => space >= 45 && space <= 180)).toBe(true);
 });
 
@@ -96,10 +119,14 @@ test('霞鹜新晰黑使用本地字体且保持一页排版', async ({ page }) 
   await expect(page.locator('[data-a4-page]')).toHaveCount(1);
   await expect(page.getByText('排版检查通过')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  const fontFamily = await page.locator('.page-wrap.rs-theme--standard').evaluate((element) => getComputedStyle(element).fontFamily);
+  const fontFamily = await page
+    .locator('.page-wrap.rs-theme--standard')
+    .evaluate((element) => getComputedStyle(element).fontFamily);
   expect(fontFamily).toContain('LXGW Neo XiHei Local');
   expect(await page.evaluate(() => document.fonts.check('16px "LXGW Neo XiHei Local"', '张三项目经验'))).toBe(true);
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('standard-xihei.png');
 });
 
@@ -113,11 +140,17 @@ test('编辑主题保持真实内容、链接与编号栏目', async ({ page }) 
   await expect(root.locator('a.rs-contact[href^="mailto:"]')).toHaveCount(1);
   await expect(root.locator('.rs-section-index')).toHaveText(['01 /', '02 /', '03 /', '04 /', '05 /']);
   await expect(page.getByText('排版检查通过')).toBeVisible();
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('editorial-balanced-no-photo.png');
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = ''; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = '';
+  });
   await addPhoto(page);
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('editorial-photo.png');
 });
 
@@ -125,7 +158,8 @@ test('编辑主题多页时保持栏目编号与完整内容', async ({ page }) 
   await ready(page);
   await chooseTheme(page, '编辑');
   const section = page.locator('[data-section-type="experience"]');
-  for (let index = 0; index < 15; index += 1) await section.getByRole('button', { name: '复制', exact: true }).first().click();
+  for (let index = 0; index < 15; index += 1)
+    await section.getByRole('button', { name: '复制', exact: true }).first().click();
   await expect(page.locator('[data-a4-page]')).toHaveCount(2);
   await expect(page.getByText('排版检查通过')).toBeVisible();
   await expect(page.locator('.page-wrap .rs-section-index')).toHaveText(['01 /', '02 /', '03 /', '04 /', '05 /']);
@@ -137,23 +171,36 @@ test('简约主题使用内置字体', async ({ page }) => {
   await chooseTheme(page, '简约');
   await expect(page.getByText('排版检查通过')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  expect(await page.locator('.page-wrap.rs-theme--minimal').evaluate((element) => getComputedStyle(element).fontFamily)).toMatch(/^"Noto Sans SC"/);
-  await page.locator('.preview-toolbar').evaluate((element) => { (element as HTMLElement).style.display = 'none'; });
+  expect(
+    await page.locator('.page-wrap.rs-theme--minimal').evaluate((element) => getComputedStyle(element).fontFamily),
+  ).toMatch(/^"Noto Sans SC"/);
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('minimal-balanced-no-photo.png');
 });
 
 test('标准主题两页并且没有溢出或空白页', async ({ page }) => {
   await ready(page);
   const section = page.locator('[data-section-type="experience"]');
-  for (let index = 0; index < 15; index += 1) await section.getByRole('button', { name: '复制', exact: true }).first().click();
+  for (let index = 0; index < 15; index += 1)
+    await section.getByRole('button', { name: '复制', exact: true }).first().click();
   await expect(page.locator('[data-a4-page]')).toHaveCount(2);
   await expect(page.getByText('排版检查通过')).toBeVisible();
-  await page.addStyleTag({ content: '.app-shell,.workspace,.preview-pane{height:auto!important;overflow:visible!important}.workspace{display:block!important}.topbar,.editor-pane,.preview-toolbar{display:none!important}' });
+  await page.addStyleTag({
+    content:
+      '.app-shell,.workspace,.preview-pane{height:auto!important;overflow:visible!important}.workspace{display:block!important}.topbar,.editor-pane,.preview-toolbar{display:none!important}',
+  });
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('standard-two-pages-page-1.png');
   await expect(page.locator('[data-a4-page="2"] .resume-block').first()).toBeVisible();
   await expect(page.locator('[data-a4-page="2"]')).toHaveScreenshot('standard-two-pages-page-2.png');
   await mkdir(path.resolve('tmp/pdfs'), { recursive: true });
-  await page.pdf({ path: path.resolve('tmp/pdfs/standard-two-page.pdf'), format: 'A4', printBackground: true, preferCSSPageSize: true });
+  await page.pdf({
+    path: path.resolve('tmp/pdfs/standard-two-page.pdf'),
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+  });
 });
 
 test('栏目可以从新页开始，再点一次恢复', async ({ page }) => {
@@ -172,7 +219,12 @@ test('Chromium 打印生成真实文本 A4 PDF', async ({ page }) => {
   await ready(page);
   const outputDir = path.resolve('output/pdf');
   await mkdir(outputDir, { recursive: true });
-  const pdf = await page.pdf({ path: path.join(outputDir, 'cvslate-standard-sample.pdf'), format: 'A4', printBackground: true, preferCSSPageSize: true });
+  const pdf = await page.pdf({
+    path: path.join(outputDir, 'cvslate-standard-sample.pdf'),
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+  });
   expect(pdf.byteLength).toBeGreaterThan(10_000);
   expect(pdf.subarray(0, 4).toString()).toBe('%PDF');
 });
@@ -193,7 +245,11 @@ test('Comfortable 与 Dense 都保持可读且分页稳定', async ({ page }) =>
 test('长 bullet 和中英文混排不裁剪', async ({ page }) => {
   await ready(page);
   const firstBullet = page.locator('[data-section-type="experience"] textarea').nth(1);
-  await firstBullet.fill('负责 Agent orchestration 与 TypeScript runtime 的端到端设计；在 macOS / Windows 环境验证中文 CJK 换行、English identifiers、超长公司名称与可复制链接。'.repeat(8));
+  await firstBullet.fill(
+    '负责 Agent orchestration 与 TypeScript runtime 的端到端设计；在 macOS / Windows 环境验证中文 CJK 换行、English identifiers、超长公司名称与可复制链接。'.repeat(
+      8,
+    ),
+  );
   await expect(page.getByText('排版检查通过')).toBeVisible();
   await hideChrome(page);
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('standard-mixed-long-bullet.png');
@@ -216,7 +272,9 @@ test('要点和说明里打的换行在页面上照样换行', async ({ page }) 
   await ready(page);
   await page.getByLabel('第 1 条要点').first().fill('搭建内容日历\n选题来自评论区高频问题');
   // innerText follows the rendered white-space, so a collapsed newline would come back as a space.
-  await expect.poll(() => page.locator('.page-wrap .rs-bullet p').first().innerText()).toBe('搭建内容日历\n选题来自评论区高频问题');
+  await expect
+    .poll(() => page.locator('.page-wrap .rs-bullet p').first().innerText())
+    .toBe('搭建内容日历\n选题来自评论区高频问题');
   await expect(page.getByText('排版检查通过')).toBeVisible();
 });
 
@@ -267,8 +325,13 @@ test('链接从常用名称里添加，最多 3 个，名称和网址有长度�
   await add.click();
   await page.getByRole('menuitem', { name: '作品集' }).click();
   await expect(links.last().getByRole('textbox', { name: '名称' })).toHaveValue('作品集');
-  await links.last().getByRole('textbox', { name: '网址' }).fill(`https://example.com/${'a'.repeat(600)}`);
-  await expect(links.last().getByRole('textbox', { name: '网址' })).toHaveValue(`https://example.com/${'a'.repeat(480)}`);
+  await links
+    .last()
+    .getByRole('textbox', { name: '网址' })
+    .fill(`https://example.com/${'a'.repeat(600)}`);
+  await expect(links.last().getByRole('textbox', { name: '网址' })).toHaveValue(
+    `https://example.com/${'a'.repeat(480)}`,
+  );
   await expect(add).toHaveCount(0);
   await expect(page.getByText('最多 3 个链接')).toBeVisible();
   await links.last().getByRole('button', { name: '删除' }).click();
@@ -289,13 +352,19 @@ test('账号链接可以只显示名称，网址较长时编辑器提示', async
   await link.getByRole('textbox', { name: '名称' }).fill('小红书 @林夏的耳饰铺');
   await expect(contact.locator('.rs-contact-value')).toHaveText('小红书 @林夏的耳饰铺');
   await expect(contact).not.toHaveAttribute('href');
-  await link.getByRole('textbox', { name: '网址' }).fill('https://www.xiaohongshu.com/user/profile/5f2a9c1e0000000001008a3b');
+  await link
+    .getByRole('textbox', { name: '网址' })
+    .fill('https://www.xiaohongshu.com/user/profile/5f2a9c1e0000000001008a3b');
   await expect(contact).toHaveAttribute('href', 'https://www.xiaohongshu.com/user/profile/5f2a9c1e0000000001008a3b');
   await expect(contact.locator('.rs-contact-value')).toHaveText('小红书 @林夏的耳饰铺');
   await expect(link.getByText('打印到纸上看不到网址')).toBeVisible();
   await link.getByRole('combobox', { name: '显示', exact: true }).selectOption('both');
-  await expect(contact.locator('.rs-contact-value')).toHaveText('小红书 @林夏的耳饰铺 xiaohongshu.com/user/profile/5f2a9c1e0000000001008a3b');
-  await expect(link.getByRole('combobox', { name: '显示', exact: true })).toHaveAccessibleDescription('网址较长，可以改成只显示名称');
+  await expect(contact.locator('.rs-contact-value')).toHaveText(
+    '小红书 @林夏的耳饰铺 xiaohongshu.com/user/profile/5f2a9c1e0000000001008a3b',
+  );
+  await expect(link.getByRole('combobox', { name: '显示', exact: true })).toHaveAccessibleDescription(
+    '网址较长，可以改成只显示名称',
+  );
 });
 
 test('链接图标默认按网址和名称自动选，也可以自己选或不显示', async ({ page }) => {
@@ -433,7 +502,8 @@ test('窄屏从底部打开主题面板，点一下即应用', async ({ page }) 
 test('粘贴 ResumeData 可校验、覆盖当前内容或导入为新简历', async ({ page }) => {
   await ready(page);
   await chooseTheme(page, '编辑');
-  await page.getByText('备份、恢复与粘贴 JSON').click();
+  await page.getByText('导出、导入与粘贴 JSON').click();
+  await expect(page.getByRole('button', { name: '从文件导入（作为新简历）' })).toBeVisible();
   const textarea = page.getByLabel('粘贴 Resume JSON');
 
   await textarea.fill('{ wrong json');
@@ -442,8 +512,25 @@ test('粘贴 ResumeData 可校验、覆盖当前内容或导入为新简历', as
 
   const exported = {
     schemaVersion: 1,
-    basics: { name: '批量更新姓名', headline: '本地 JSON 导入', phone: '', email: 'example@example.com', location: '上海', links: [] },
-    sections: [{ id: 'summary-import', type: 'summary', title: '简介', visible: true, layout: { pageBreakBefore: false }, text: '这是粘贴导入的内容。', entries: [] }],
+    basics: {
+      name: '批量更新姓名',
+      headline: '本地 JSON 导入',
+      phone: '',
+      email: 'example@example.com',
+      location: '上海',
+      links: [],
+    },
+    sections: [
+      {
+        id: 'summary-import',
+        type: 'summary',
+        title: '简介',
+        visible: true,
+        layout: { pageBreakBefore: false },
+        text: '这是粘贴导入的内容。',
+        entries: [],
+      },
+    ],
   };
   await textarea.fill(JSON.stringify(exported, null, 2));
   await page.getByRole('button', { name: '校验 JSON' }).click();
@@ -472,7 +559,14 @@ test('粘贴 ResumeData 可校验、覆盖当前内容或导入为新简历', as
     appearance: {
       themeId: 'minimal',
       density: 'dense',
-      layout: { pageMarginMm: 12, baseFontPt: 9.2, lineHeight: 1.38, sectionSpacingPt: 6, accentColor: '#2d3c97', photoEnabled: false },
+      layout: {
+        pageMarginMm: 12,
+        baseFontPt: 9.2,
+        lineHeight: 1.38,
+        sectionSpacingPt: 6,
+        accentColor: '#2d3c97',
+        photoEnabled: false,
+      },
     },
   };
   await textarea.fill(JSON.stringify(completeResume, null, 2));

@@ -9,15 +9,49 @@
   "license": "MIT",
   "tags": ["简约", "正式", "社招", "校招"],
   "traits": { "photo": true, "atsFriendly": true },
-  "defaults": { "pageMarginMm": 15, "baseFontPt": 9.8, "lineHeight": 1.45, "sectionSpacingPt": 8, "photoEnabled": false },
+  "defaults": {
+    "pageMarginMm": 15,
+    "baseFontPt": 9.8,
+    "lineHeight": 1.45,
+    "sectionSpacingPt": 8,
+    "photoEnabled": false
+  },
   "presets": [
     { "id": "navy", "name": "藏蓝", "accentColor": "#274472" },
     { "id": "ink", "name": "墨黑", "accentColor": "#1f2329" },
     { "id": "teal", "name": "黛青", "accentColor": "#2f5d62" }
   ],
   "settings": [
-    { "id": "header", "label": "页眉", "type": "select", "default": "left", "options": [{ "value": "left", "label": "左对齐" }, { "value": "center", "label": "居中" }] },
-    { "id": "contacts", "label": "联系方式", "type": "select", "default": "plain", "options": [{ "value": "plain", "label": "纯文字" }, { "value": "icons", "label": "带图标" }] },
-    { "id": "rule", "label": "栏目标题线", "type": "select", "default": "full", "options": [{ "value": "full", "label": "通栏" }, { "value": "short", "label": "短线" }, { "value": "none", "label": "无" }] }
+    {
+      "id": "header",
+      "label": "页眉",
+      "type": "select",
+      "default": "left",
+      "options": [
+        { "value": "left", "label": "左对齐" },
+        { "value": "center", "label": "居中" }
+      ]
+    },
+    {
+      "id": "contacts",
+      "label": "联系方式",
+      "type": "select",
+      "default": "plain",
+      "options": [
+        { "value": "plain", "label": "纯文字" },
+        { "value": "icons", "label": "带图标" }
+      ]
+    },
+    {
+      "id": "rule",
+      "label": "栏目标题线",
+      "type": "select",
+      "default": "full",
+      "options": [
+        { "value": "full", "label": "通栏" },
+        { "value": "short", "label": "短线" },
+        { "value": "none", "label": "无" }
+      ]
+    }
   ]
 }

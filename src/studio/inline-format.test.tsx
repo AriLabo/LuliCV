@@ -5,10 +5,14 @@ import { renderInlineText, toggleBold } from './inline-format';
 describe('inline emphasis', () => {
   it('wraps and unwraps the selected text with readable markers', () => {
     expect(toggleBold('使用 React 构建', 3, 8)).toEqual({
-      value: '使用 **React** 构建', selectionStart: 5, selectionEnd: 10,
+      value: '使用 **React** 构建',
+      selectionStart: 5,
+      selectionEnd: 10,
     });
     expect(toggleBold('使用 **React** 构建', 5, 10)).toEqual({
-      value: '使用 React 构建', selectionStart: 3, selectionEnd: 8,
+      value: '使用 React 构建',
+      selectionStart: 3,
+      selectionEnd: 8,
     });
   });
 

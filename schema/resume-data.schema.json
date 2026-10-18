@@ -23,10 +23,21 @@
     }
   },
   "$defs": {
-    "nonEmptyId": { "type": "string", "minLength": 1 },
-    "contactUrl": { "type": "string", "description": "At most 500 characters, or one {{private:…}} placeholder", "anyOf": [{ "maxLength": 500 }, { "pattern": "^\\{\\{private:[^{}]*\\}\\}$" }] },
-    "detailText": { "type": "string", "description": "At most 20 characters, or one {{private:…}} placeholder", "anyOf": [{ "maxLength": 20 }, { "pattern": "^\\{\\{private:[^{}]*\\}\\}$" }] },
-    "inlineText": { "type": "string", "description": "Plain text with optional **bold emphasis** markers; HTML is not interpreted. In a summary, description, additional or bullet, a newline starts a new line" },
+    "nonEmptyId": { "type": "string", "pattern": "\\S", "description": "Not blank" },
+    "contactUrl": {
+      "type": "string",
+      "description": "At most 500 characters, or one {{private:…}} placeholder",
+      "anyOf": [{ "maxLength": 500 }, { "pattern": "^\\{\\{private:[^{}]*\\}\\}$" }]
+    },
+    "detailText": {
+      "type": "string",
+      "description": "At most 20 characters, or one {{private:…}} placeholder",
+      "anyOf": [{ "maxLength": 20 }, { "pattern": "^\\{\\{private:[^{}]*\\}\\}$" }]
+    },
+    "inlineText": {
+      "type": "string",
+      "description": "Plain text with optional **bold emphasis** markers; HTML is not interpreted. In a summary, description, additional or bullet, a newline starts a new line"
+    },
     "stringArray": { "type": "array", "items": { "$ref": "#/$defs/inlineText" } },
     "layout": {
       "type": "object",
@@ -42,10 +53,32 @@
       "required": ["id", "label", "url"],
       "properties": {
         "id": { "$ref": "#/$defs/nonEmptyId" },
-        "label": { "type": "string", "maxLength": 30, "description": "A category such as GitHub, or the content itself such as an account name" },
+        "label": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "A category such as GitHub, or the content itself such as an account name"
+        },
         "url": { "$ref": "#/$defs/contactUrl", "description": "May be empty when show prints the label" },
-        "show": { "enum": ["url", "label", "both"], "description": "What the header prints: the address (default when absent), the label, or the label followed by the address. Use label for an account name whose address is long or unreadable" },
-        "icon": { "enum": ["none", "link", "globe", "xiaohongshu", "douyin", "bilibili", "weibo", "zhihu", "wechat", "github", "linkedin"], "description": "The mark before the link, where the theme shows icons. Absent: chosen from the address's site, else a platform the label names, else globe for 个人网站 and link otherwise. Leave it out unless the user picks one, or the address is a short link whose platform cannot be told from it" }
+        "show": {
+          "enum": ["url", "label", "both"],
+          "description": "What the header prints: the address (default when absent), the label, or the label followed by the address. Use label for an account name whose address is long or unreadable"
+        },
+        "icon": {
+          "enum": [
+            "none",
+            "link",
+            "globe",
+            "xiaohongshu",
+            "douyin",
+            "bilibili",
+            "weibo",
+            "zhihu",
+            "wechat",
+            "github",
+            "linkedin"
+          ],
+          "description": "The mark before the link, where the theme shows icons. Absent: chosen from the address's site, else a platform the label names, else globe for 个人网站 and link otherwise. Leave it out unless the user picks one, or the address is a short link whose platform cannot be told from it"
+        }
       }
     },
     "basics": {
@@ -58,13 +91,30 @@
         "phone": { "type": "string" },
         "email": { "type": "string" },
         "location": { "type": "string" },
-        "links": { "type": "array", "maxItems": 3, "description": "Links such as a personal site, GitHub or a portfolio, at most 3", "items": { "$ref": "#/$defs/link" } },
+        "links": {
+          "type": "array",
+          "maxItems": 3,
+          "description": "Links such as a personal site, GitHub or a portfolio, at most 3",
+          "items": { "$ref": "#/$defs/link" }
+        },
         "photo": { "type": "string", "description": "Optional local image data URL" },
-        "gender": { "$ref": "#/$defs/detailText", "description": "Optional, e.g. 男 or 女; leave the key out when not given" },
+        "gender": {
+          "$ref": "#/$defs/detailText",
+          "description": "Optional, e.g. 男 or 女; leave the key out when not given"
+        },
         "birthDate": { "$ref": "#/$defs/detailText", "description": "Optional year and month of birth, e.g. 2000.05" },
-        "politicalStatus": { "$ref": "#/$defs/detailText", "description": "Optional political status, e.g. 群众, 共青团员 or 中共党员" },
-        "hometown": { "$ref": "#/$defs/detailText", "description": "Optional native place (籍贯), e.g. 上海; not where the person lives now" },
-        "yearsOfExperience": { "$ref": "#/$defs/detailText", "description": "Optional years of work experience as written, e.g. 3 年" }
+        "politicalStatus": {
+          "$ref": "#/$defs/detailText",
+          "description": "Optional political status, e.g. 群众, 共青团员 or 中共党员"
+        },
+        "hometown": {
+          "$ref": "#/$defs/detailText",
+          "description": "Optional native place (籍贯), e.g. 上海; not where the person lives now"
+        },
+        "yearsOfExperience": {
+          "$ref": "#/$defs/detailText",
+          "description": "Optional years of work experience as written, e.g. 3 年"
+        }
       }
     },
     "experienceEntry": {
@@ -72,9 +122,14 @@
       "additionalProperties": false,
       "required": ["id", "company", "role", "location", "startDate", "endDate", "description", "bullets"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "company": { "type": "string" }, "role": { "type": "string" },
-        "location": { "type": "string" }, "startDate": { "type": "string" }, "endDate": { "type": "string" },
-        "description": { "$ref": "#/$defs/inlineText" }, "bullets": { "$ref": "#/$defs/stringArray" }
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "location": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "description": { "$ref": "#/$defs/inlineText" },
+        "bullets": { "$ref": "#/$defs/stringArray" }
       }
     },
     "projectEntry": {
@@ -82,8 +137,12 @@
       "additionalProperties": false,
       "required": ["id", "name", "subtitle", "date", "link", "description", "bullets"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "name": { "type": "string" }, "subtitle": { "type": "string" },
-        "date": { "type": "string" }, "link": { "type": "string" }, "description": { "$ref": "#/$defs/inlineText" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "name": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "date": { "type": "string" },
+        "link": { "type": "string" },
+        "description": { "$ref": "#/$defs/inlineText" },
         "bullets": { "$ref": "#/$defs/stringArray" }
       }
     },
@@ -92,8 +151,12 @@
       "additionalProperties": false,
       "required": ["id", "school", "degree", "major", "date", "additional", "bullets"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "school": { "type": "string" }, "degree": { "type": "string" },
-        "major": { "type": "string" }, "date": { "type": "string" }, "additional": { "$ref": "#/$defs/inlineText" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "school": { "type": "string" },
+        "degree": { "type": "string" },
+        "major": { "type": "string" },
+        "date": { "type": "string" },
+        "additional": { "$ref": "#/$defs/inlineText" },
         "bullets": { "$ref": "#/$defs/stringArray" }
       }
     },
@@ -102,7 +165,9 @@
       "additionalProperties": false,
       "required": ["id", "category", "items"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "category": { "type": "string" }, "items": { "$ref": "#/$defs/stringArray" }
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "category": { "type": "string" },
+        "items": { "$ref": "#/$defs/stringArray" }
       }
     },
     "customEntry": {
@@ -110,62 +175,91 @@
       "additionalProperties": false,
       "required": ["id", "title", "subtitle", "date", "link", "description", "bullets"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "title": { "type": "string" }, "subtitle": { "type": "string" },
-        "date": { "type": "string" }, "link": { "type": "string" }, "description": { "$ref": "#/$defs/inlineText" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "date": { "type": "string" },
+        "link": { "type": "string" },
+        "description": { "$ref": "#/$defs/inlineText" },
         "bullets": { "$ref": "#/$defs/stringArray" }
       }
     },
     "summarySection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "text", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "summary" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" }, "text": { "$ref": "#/$defs/inlineText" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "summary" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
+        "text": { "$ref": "#/$defs/inlineText" },
         "entries": { "type": "array", "maxItems": 0 }
       }
     },
     "experienceSection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "experience" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "experience" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
         "entries": { "type": "array", "items": { "$ref": "#/$defs/experienceEntry" } }
       }
     },
     "projectsSection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "projects" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "projects" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
         "entries": { "type": "array", "items": { "$ref": "#/$defs/projectEntry" } }
       }
     },
     "educationSection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "education" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "education" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
         "entries": { "type": "array", "items": { "$ref": "#/$defs/educationEntry" } }
       }
     },
     "skillsSection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "skills" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "skills" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
         "entries": { "type": "array", "items": { "$ref": "#/$defs/skillEntry" } }
       }
     },
     "customSection": {
-      "type": "object", "additionalProperties": false,
+      "type": "object",
+      "additionalProperties": false,
       "required": ["id", "type", "title", "visible", "layout", "entries"],
       "properties": {
-        "id": { "$ref": "#/$defs/nonEmptyId" }, "type": { "const": "custom" }, "title": { "type": "string" },
-        "visible": { "type": "boolean" }, "layout": { "$ref": "#/$defs/layout" },
+        "id": { "$ref": "#/$defs/nonEmptyId" },
+        "type": { "const": "custom" },
+        "title": { "type": "string" },
+        "visible": { "type": "boolean" },
+        "layout": { "$ref": "#/$defs/layout" },
         "entries": { "type": "array", "items": { "$ref": "#/$defs/customEntry" } }
       }
     }

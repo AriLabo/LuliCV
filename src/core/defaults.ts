@@ -2,7 +2,10 @@ import { cloneSample } from './fixtures';
 import { createId } from './ids';
 import type { Appearance, Density, LayoutSettings, ResumeRecord } from './types';
 
-export const densityDefaults: Record<Density, Pick<LayoutSettings, 'pageMarginMm' | 'baseFontPt' | 'lineHeight' | 'sectionSpacingPt'>> = {
+export const densityDefaults: Record<
+  Density,
+  Pick<LayoutSettings, 'pageMarginMm' | 'baseFontPt' | 'lineHeight' | 'sectionSpacingPt'>
+> = {
   comfortable: { pageMarginMm: 18, baseFontPt: 10.5, lineHeight: 1.55, sectionSpacingPt: 11 },
   balanced: { pageMarginMm: 15, baseFontPt: 9.8, lineHeight: 1.45, sectionSpacingPt: 8 },
   dense: { pageMarginMm: 11, baseFontPt: 9.1, lineHeight: 1.36, sectionSpacingPt: 6 },
@@ -26,5 +29,12 @@ export const baseAppearance: Appearance = {
 
 export function createResumeRecord(name = '我的简历'): ResumeRecord {
   const now = Date.now();
-  return { id: createId('resume'), name, createdAt: now, updatedAt: now, data: cloneSample(), appearance: structuredClone(baseAppearance) };
+  return {
+    id: createId('resume'),
+    name,
+    createdAt: now,
+    updatedAt: now,
+    data: cloneSample(),
+    appearance: structuredClone(baseAppearance),
+  };
 }

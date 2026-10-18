@@ -8,22 +8,49 @@ import { entryTitle } from './entries';
 
 const han = '\\u3400-\\u4dbf\\u4e00-\\u9fff';
 const mistakes: Array<{ pattern: RegExp; message: string }> = [
-  { pattern: new RegExp(`[${han}][,;:!?]\\s*[${han}]`), message: '中文句子中间用了半角标点，建议改为全角（，；：！？）' },
+  {
+    pattern: new RegExp(`[${han}][,;:!?]\\s*[${han}]`),
+    message: '中文句子中间用了半角标点，建议改为全角（，；：！？）',
+  },
   { pattern: /[０-９Ａ-Ｚａ-ｚ]/, message: '有全角字母或数字，建议改为半角' },
   { pattern: /([，。、；：！？])\1/, message: '标点重复' },
 ];
 // Each style pair: the same job done two ways. Mixing them within one resume is what gets reported.
 const styles: Array<{ name: string; variants: Array<{ label: string; pattern: RegExp }> }> = [
-  { name: '中文括号', variants: [{ label: '全角（）', pattern: new RegExp(`（[^（）]*[${han}][^（）]*）`, 'g') }, { label: '半角()', pattern: new RegExp(`\\([^()]*[${han}][^()]*\\)`, 'g') }] },
-  { name: '中文引号', variants: [{ label: '“”', pattern: new RegExp(`“[^“”]*[${han}][^“”]*”`, 'g') }, { label: '""', pattern: new RegExp(`"[^"]*[${han}][^"]*"`, 'g') }] },
+  {
+    name: '中文括号',
+    variants: [
+      { label: '全角（）', pattern: new RegExp(`（[^（）]*[${han}][^（）]*）`, 'g') },
+      { label: '半角()', pattern: new RegExp(`\\([^()]*[${han}][^()]*\\)`, 'g') },
+    ],
+  },
+  {
+    name: '中文引号',
+    variants: [
+      { label: '“”', pattern: new RegExp(`“[^“”]*[${han}][^“”]*”`, 'g') },
+      { label: '""', pattern: new RegExp(`"[^"]*[${han}][^"]*"`, 'g') },
+    ],
+  },
 ];
 
 const fieldNames: Record<string, string> = {
-  headline: '目标职位', company: '公司', role: '职位', description: '说明', name: '名称', subtitle: '副标题', school: '学校', degree: '学位', major: '专业', additional: '补充文字', title: '标题', category: '分类',
+  headline: '目标职位',
+  company: '公司',
+  role: '职位',
+  description: '说明',
+  name: '名称',
+  subtitle: '副标题',
+  school: '学校',
+  degree: '学位',
+  major: '专业',
+  additional: '补充文字',
+  title: '标题',
+  category: '分类',
 };
 
 function excerpt(text: string, index: number) {
-  const start = Math.max(0, index - 8), end = Math.min(text.length, index + 10);
+  const start = Math.max(0, index - 8),
+    end = Math.min(text.length, index + 10);
   return `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
 }
 
@@ -38,10 +65,21 @@ function textFields(data: ResumeData): Array<{ place: string; path: string; text
       const entryPath = `${sectionPath}.entries[${entryIndex}]`;
       const place = `「${section.title}」 · ${entryTitle(entry) || '未命名条目'}`;
       for (const [key, value] of Object.entries(entry)) {
-        if (typeof value === 'string' && key in fieldNames) fields.push({ place: `${place} · ${fieldNames[key]}`, path: `${entryPath}.${key}`, text: value });
+        if (typeof value === 'string' && key in fieldNames)
+          fields.push({ place: `${place} · ${fieldNames[key]}`, path: `${entryPath}.${key}`, text: value });
       }
-      if ('bullets' in entry) entry.bullets.forEach((bullet, index) => fields.push({ place: `${place} · 第 ${index + 1} 条要点`, path: `${entryPath}.bullets[${index}]`, text: bullet }));
-      if ('items' in entry) entry.items.forEach((item, index) => fields.push({ place: `${place} · 技能项 ${index + 1}`, path: `${entryPath}.items[${index}]`, text: item }));
+      if ('bullets' in entry)
+        entry.bullets.forEach((bullet, index) =>
+          fields.push({
+            place: `${place} · 第 ${index + 1} 条要点`,
+            path: `${entryPath}.bullets[${index}]`,
+            text: bullet,
+          }),
+        );
+      if ('items' in entry)
+        entry.items.forEach((item, index) =>
+          fields.push({ place: `${place} · 技能项 ${index + 1}`, path: `${entryPath}.items[${index}]`, text: item }),
+        );
     });
   });
   return fields;
@@ -63,19 +101,35 @@ export function chineseTypographyWarnings(data: ResumeData): string[] {
     }
   }
   for (const { name, variants } of styles) {
-    const found = variants.map(({ label, pattern }) => ({ label, places: fields.flatMap(({ place, path, text }) => [...text.matchAll(pattern)].map((match) => `${place}「${excerpt(text, match.index ?? 0)}」[${path}]`)) }));
+    const found = variants.map(({ label, pattern }) => ({
+      label,
+      places: fields.flatMap(({ place, path, text }) =>
+        [...text.matchAll(pattern)].map((match) => `${place}「${excerpt(text, match.index ?? 0)}」[${path}]`),
+      ),
+    }));
     if (found.every(({ places }) => places.length)) {
       // Point at the less used style; the more common one is taken as the person's choice.
       const [minority, majority] = [...found].sort((a, b) => a.places.length - b.places.length);
-      warnings.push(`${name}写法不统一：多数用${majority.label}，${minority.places.length} 处用了${minority.label}：${minority.places.slice(0, 3).join('；')}${minority.places.length > 3 ? ' 等' : ''}`);
+      warnings.push(
+        `${name}写法不统一：多数用${majority.label}，${minority.places.length} 处用了${minority.label}：${minority.places.slice(0, 3).join('；')}${minority.places.length > 3 ? ' 等' : ''}`,
+      );
     }
   }
   const dates = new Set<string>();
-  for (const section of data.sections) if (section.visible) for (const entry of section.entries) {
-    for (const value of ['startDate' in entry ? entry.startDate : '', 'endDate' in entry ? entry.endDate : '', 'date' in entry ? entry.date : '']) {
-      for (const part of value.split(/\s*[—–~至]\s*|\s+-\s+/)) { const style = dateStyle(part.trim()); if (style) dates.add(style); }
-    }
-  }
+  for (const section of data.sections)
+    if (section.visible)
+      for (const entry of section.entries) {
+        for (const value of [
+          'startDate' in entry ? entry.startDate : '',
+          'endDate' in entry ? entry.endDate : '',
+          'date' in entry ? entry.date : '',
+        ]) {
+          for (const part of value.split(/\s*[—–~至]\s*|\s+-\s+/)) {
+            const style = dateStyle(part.trim());
+            if (style) dates.add(style);
+          }
+        }
+      }
   if (dates.size > 1) warnings.push(`日期写法不统一：${[...dates].join('、')}，建议统一为一种`);
   return warnings;
 }

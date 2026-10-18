@@ -4,7 +4,12 @@ const fallback = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans C
 export const fontOptions = [
   { id: 'noto-sans-sc', name: '思源黑体 Noto Sans SC', short: '思源黑体', stack: `"Noto Sans SC", ${fallback}` },
   { id: 'misans', name: 'MiSans', short: 'MiSans', stack: `"MiSans VF", "Noto Sans SC", ${fallback}` },
-  { id: 'lxgw-neo-xihei', name: '霞鹜新晰黑（仅常规字重）', short: '霞鹜新晰黑', stack: `"LXGW Neo XiHei Local", "Noto Sans SC", ${fallback}` },
+  {
+    id: 'lxgw-neo-xihei',
+    name: '霞鹜新晰黑（仅常规字重）',
+    short: '霞鹜新晰黑',
+    stack: `"LXGW Neo XiHei Local", "Noto Sans SC", ${fallback}`,
+  },
 ] as const;
 export const fontIds: readonly string[] = fontOptions.map((font) => font.id);
 export function fontStack(id: string | undefined): string | undefined {

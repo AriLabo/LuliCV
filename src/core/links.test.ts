@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { linkCode, linkIcon, linkPlatform, sitePlatform } from './links';
 import type { LinkItem } from './types';
 
-const link = (label: string, url: string, icon?: LinkItem['icon']): LinkItem => ({ id: 'link-a', label, url, ...(icon && { icon }) });
+const link = (label: string, url: string, icon?: LinkItem['icon']): LinkItem => ({
+  id: 'link-a',
+  label,
+  url,
+  ...(icon && { icon }),
+});
 
 describe('link platforms', () => {
   it('reads the platform from the host, subdomains and short links included', () => {

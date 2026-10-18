@@ -15,6 +15,15 @@
     { "id": "navy", "name": "藏蓝", "accentColor": "#274472" }
   ],
   "settings": [
-    { "id": "photo", "label": "照片", "type": "select", "default": "gray", "options": [{ "value": "gray", "label": "黑白" }, { "value": "color", "label": "彩色" }] }
+    {
+      "id": "photo",
+      "label": "照片",
+      "type": "select",
+      "default": "gray",
+      "options": [
+        { "value": "gray", "label": "黑白" },
+        { "value": "color", "label": "彩色" }
+      ]
+    }
   ]
 }
