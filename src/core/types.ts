@@ -144,6 +144,8 @@ export interface ResumeRecord {
   parentId?: string;
   /** One line on what a base resume is for, e.g. which roles it targets; read by people and agents. */
   purpose?: string;
+  /** A built-in example, not the user's own resume; copies inherit it. Cleared once the user says so. */
+  sample?: true;
 }
 
 export interface ResumeWorkspace {

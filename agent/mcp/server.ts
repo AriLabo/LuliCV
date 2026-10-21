@@ -62,10 +62,11 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
     'import_resume',
     {
       description:
-        '完整校验后幂等创建新简历。缺失事实不以示例补齐，导入后必须在网页对照原材料核对。结果未知时使用相同 mutationId 与参数重试。warnings 仅为格式提示。',
+        '完整校验后幂等创建新简历。缺失事实不以示例补齐，导入后必须在网页对照原材料核对。结果未知时使用相同 mutationId 与参数重试。warnings 仅为格式提示。sample: true 且不带 data 时创建内置的虚构示例简历，供用户试用。',
       inputSchema: z.strictObject({
         mutationId: id,
-        data: z.record(z.string(), z.unknown()),
+        data: z.record(z.string(), z.unknown()).optional(),
+        sample: z.literal(true).optional(),
         name: z.string().max(200).optional(),
         appearance: z.record(z.string(), z.unknown()).optional(),
       }),
@@ -87,7 +88,7 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
     'list_resumes',
     {
       description:
-        '列出当前本地工作区简历摘要：parentId 是在简历树中的位置（只是组织关系，不继承内容），purpose 是主简历或方向的定位，target 是投递版的目标公司与岗位，source 是复制来源。',
+        '列出当前本地工作区简历摘要：parentId 是在简历树中的位置（只是组织关系，不继承内容），purpose 是主简历或方向的定位，target 是投递版的目标公司与岗位，source 是复制来源，sample 表示内置的虚构示例。',
       inputSchema: z.strictObject({}),
       annotations: readOnly,
     },
@@ -99,13 +100,14 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
           ...(response.headers.get('x-resume-privacy') === 'on'
             ? { privacy: { mode: true, notice: PRIVACY_NOTICE } }
             : {}),
-          resumes: documents.map(({ id, name, revision, updatedAt, target, source, parentId, purpose }) => ({
+          resumes: documents.map(({ id, name, revision, updatedAt, target, source, parentId, purpose, sample }) => ({
             id,
             name,
             revision,
             updatedAt,
             ...(parentId ? { parentId } : {}),
             ...(purpose ? { purpose } : {}),
+            ...(sample ? { sample } : {}),
             ...(target ? { target: { company: target.company, role: target.role } } : {}),
             ...(source ? { source } : {}),
           })),
@@ -153,7 +155,7 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
     'patch_resume',
     {
       description:
-        '提交有限 JSON Patch，覆盖 name、data、appearance、target、parentId、purpose，以及 /source/revision（把来源改动标记为已看过）。冲突后重新读取，禁止盲目重试旧草稿。结果未知时保留原 mutationId 与参数重试。',
+        '提交有限 JSON Patch，覆盖 name、data、appearance、target、parentId、purpose、sample（用户要求时 remove，去掉示例标记），以及 /source/revision（把来源改动标记为已看过）。冲突后重新读取，禁止盲目重试旧草稿。结果未知时保留原 mutationId 与参数重试。',
       inputSchema: z.strictObject({
         id,
         baseRevision: revision,

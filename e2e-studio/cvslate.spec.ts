@@ -1,6 +1,29 @@
 import { expect, test, type Page } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { normalizeDocument } from '../src/core/document';
+import { sampleRecord } from '../src/core/fixtures';
+import type { ResumeDocument } from '../src/core/types';
+
+// The editor starts empty; each test here begins with the test sample saved, as if the person had made it.
+test.beforeEach(async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: '先看看简历效果' })).toBeVisible();
+  await page.evaluate(async (document: ResumeDocument) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('cvslate', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const tx = db.transaction('documents', 'readwrite');
+    tx.objectStore('documents').put(document, document.id);
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  }, normalizeDocument(sampleRecord()));
+});
 
 // Screenshots cover the A4 page only; the sticky preview toolbar must not overlap it.
 async function hideChrome(page: Page) {

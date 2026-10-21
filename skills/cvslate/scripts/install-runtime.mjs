@@ -151,6 +151,21 @@ async function main() {
   const entry = fileURLToPath(new URL('./cvslate.mjs', import.meta.url));
   const report = async (install, extra) => {
     const checked = await doctor(entry);
+    // When every check passed the agent only needs to know it is ready; paths and checks it would only repeat to the user.
+    if (checked?.valid === true && checked.checks?.every((check) => check.status === 'ok')) {
+      process.stdout.write(
+        JSON.stringify({
+          installed: true,
+          ready: true,
+          version,
+          source: install.source,
+          ...extra,
+          nextAction:
+            'doctor already ran as part of this install and passed every check, so there is nothing to run again before starting. Tell the user CVSlate is ready as the last step of references/install.md says.',
+        }) + '\n',
+      );
+      return;
+    }
     process.stdout.write(
       JSON.stringify({
         installed: true,
@@ -161,9 +176,9 @@ async function main() {
         node: install.systemNode ? 'system' : 'private',
         ...extra,
         ...(checked ? { doctor: checked } : {}),
-        next: checked
-          ? 'Run setup only if the doctor above reports no browser, then doctor again. Then open the editor with preview.'
-          : 'Run doctor through the invocation; run setup only if it reports no browser. Then open the editor with preview.',
+        nextAction: checked
+          ? 'Run setup only if the doctor above reports no browser, then doctor again. Then tell the user CVSlate is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.'
+          : 'Run doctor through the invocation; run setup only if it reports no browser. Then tell the user CVSlate is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.',
       }) + '\n',
     );
   };

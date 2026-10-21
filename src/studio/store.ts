@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createResumeRecord, densityDefaults } from './defaults';
+import { baseAppearance, createResumeRecord, densityDefaults, sampleResumeInput } from './defaults';
 import { createId } from './ids';
 import { BrowserRepository, type ObservableRepository } from './browser-repository';
 import { normalizeImport } from '../core/document';
@@ -60,10 +60,13 @@ interface StudioState {
   loadHistory: (id: string) => Promise<RevisionSummary[]>;
   loadSourceChanges: () => Promise<Record<string, number>>;
   loadSourceDiff: (id: string) => Promise<SourceDiff | undefined>;
-  updateMeta: (patch: { parentId?: string | null; purpose?: string }) => void;
+  /** `sample: false` clears the example mark; it does not change the content. */
+  updateMeta: (patch: { parentId?: string | null; purpose?: string; sample?: false }) => void;
   /** Marks the source's changes up to `revision` as seen, so they stop being flagged. */
   acknowledgeSource: (revision: number) => void;
-  createResume: (name?: string) => void;
+  createResume: (name?: string) => Promise<void>;
+  /** Saves the built-in example as a resume of its own, marked as an example. */
+  createSample: () => Promise<void>;
   duplicateResume: (id?: string, name?: string, target?: ResumeTarget, parentId?: string) => void;
   renameResume: (name: string) => void;
   deleteResume: () => void;
@@ -309,8 +312,9 @@ function bridge(): BridgeRepository {
     throw new ResumeError('VALIDATION_FAILED', '隐私模式只在本地工作区可用');
   return repository;
 }
-function background(task: () => Promise<void>) {
-  void task().catch(fail);
+/** Runs a task whose failure goes to the error notice; the returned promise never rejects. */
+function background(task: () => Promise<void>): Promise<void> {
+  return task().catch(fail);
 }
 const clamp = (value: number, min: number, max: number) => Math.round(Math.min(max, Math.max(min, value)) * 100) / 100;
 /** Density shifts the theme's own defaults instead of replacing them with one global preset. */
@@ -398,8 +402,8 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             });
           void refreshChain.catch(fail);
         });
+        // An empty workspace stays empty: the page previews the example until the user picks one.
         let records = await service.list();
-        if (!records.length) records = [await service.create()];
         records.forEach((record) => committed.set(record.id, record));
         const conflicts: Record<string, boolean> = {};
         records = await Promise.all(
@@ -419,7 +423,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             conflicts[draft.local.id] = true;
           }
         const storedId = localStorage.getItem('cvslate:active');
-        const activeId = records.find((record) => record.id === storedId)?.id ?? records[0].id;
+        const activeId = records.find((record) => record.id === storedId)?.id ?? records[0]?.id ?? '';
         if (repository instanceof BridgeRepository) await get().loadPrivacy();
         set({
           workspace: { version: 1, activeId, resumes: records },
@@ -505,6 +509,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
           if (patch.purpose.trim()) next.purpose = patch.purpose;
           else delete next.purpose;
         }
+        if (patch.sample === false) delete next.sample;
         return next;
       },
       'meta',
@@ -547,6 +552,10 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     background(async () => {
       await append(await service.create({ name }));
     }),
+  createSample: () =>
+    background(async () => {
+      await append(await service.create(sampleResumeInput()));
+    }),
   duplicateResume: (id, name, target, parentId) =>
     background(async () => {
       const record = active();
@@ -559,24 +568,26 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   deleteResume: () =>
     background(async () => {
       const record = active();
-      if (!record || (get().workspace?.resumes.length ?? 0) <= 1) return;
+      if (!record) return;
       await flushDocument(record.id);
       await service.delete(record.id, {
         baseRevision: committed.get(record.id)!.revision,
         mutationId: createId('delete'),
       });
+      // An earlier agent notice no longer describes what the page shows after the person's own delete.
+      set({ lastChange: undefined });
       await refresh();
     }),
   importResumeData: (data, mode, options) => {
     const record = active();
-    if (!record) return;
+    if (!record && mode !== 'new') return;
     background(async () => {
-      if (mode === 'new') {
+      if (mode === 'new' || !record) {
         await append(
           await service.create({
             data,
             name: options?.name ?? `${data.basics.name || '导入'}的简历`,
-            appearance: options?.appearance ?? record.appearance,
+            appearance: options?.appearance ?? record?.appearance ?? structuredClone(baseAppearance),
           }),
         );
       } else {
@@ -632,6 +643,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       name: `${record.name} 本地草稿`,
       data: record.data,
       appearance: record.appearance,
+      ...(record.sample ? { sample: true as const } : {}),
     });
     await get().discardDraft();
     await append(saved);

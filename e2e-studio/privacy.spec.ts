@@ -8,6 +8,7 @@ import { WorkspaceRenderer, coverPrivate, coverTargets } from '../agent/renderer
 import { bridgeRequest } from '../agent/cli/client';
 import { defaultPrivacy, emptyStore, planPrivacy, PrivacyView, type PrivacySettings } from '../src/core/privacy';
 import type { ResumeDocument } from '../src/core/types';
+import { cloneSample } from '../src/core/fixtures';
 
 const settings: PrivacySettings = { enabled: true, fields: ['name', 'phone', 'email', 'photo', 'location', 'links'] };
 const { fields } = settings;
@@ -34,7 +35,7 @@ test('page images for agents cover every private value, in its own field and in 
     },
   });
   try {
-    const created = await bridge.service.create();
+    const created = await bridge.service.create({ data: cloneSample() });
     const resume = await bridge.service.patch(created.id, {
       baseRevision: 1,
       mutationId: 'fixture',
@@ -129,7 +130,7 @@ test('people turn privacy mode on, fill the values, edit around placeholders, ex
     renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
   });
   try {
-    const first = await bridge.service.create();
+    const first = await bridge.service.create({ data: cloneSample() });
     const resume = await bridge.service.patch(first.id, {
       baseRevision: 1,
       mutationId: 'fixture-a',
@@ -140,7 +141,7 @@ test('people turn privacy mode on, fill the values, edit around placeholders, ex
         { op: 'replace', path: '/data/basics/links', value: [] },
       ],
     });
-    const second = await bridge.service.create();
+    const second = await bridge.service.create({ data: cloneSample() });
     await bridge.service.patch(second.id, {
       baseRevision: 1,
       mutationId: 'fixture-b',
@@ -285,7 +286,7 @@ test('agents export only after the person approves in the web page; the PDF down
   });
   const agent = (route: string, method = 'GET', value?: unknown) => bridgeRequest(bridge.runtime, route, method, value);
   try {
-    const created = await bridge.service.create();
+    const created = await bridge.service.create({ data: cloneSample() });
     await bridge.service.patch(created.id, {
       baseRevision: 1,
       mutationId: 'fixture',
@@ -373,6 +374,57 @@ test('agents export only after the person approves in the web page; the PDF down
     await page.screenshot({ path: 'test-results/export-log.png' });
     await log.getByRole('button', { name: '返回' }).click();
     await expect(vault.locator('[data-private-value="name"]')).toBeVisible();
+  } finally {
+    await page.close();
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('clearing the sample mark in privacy mode puts the person’s details in place of the example’s', async ({
+  page,
+}) => {
+  const root = await mkdtemp(path.join(tmpdir(), 'resume-privacy-sample-'));
+  await initializeWorkspace(root);
+  const bridge = await startBridge({
+    workspace: root,
+    dist: path.resolve('dist'),
+    renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
+  });
+  const agent = async (route: string, method = 'GET', value?: unknown) =>
+    (await bridgeRequest(bridge.runtime, route, method, value)).json();
+  try {
+    const created = await bridge.service.create({ data: cloneSample() });
+    await bridge.service.patch(created.id, {
+      baseRevision: 1,
+      mutationId: 'fixture',
+      operations: [{ op: 'replace', path: '/data/basics/name', value: '张三' }],
+    });
+    await agent('/api/privacy', 'PUT', { enabled: true, fields: ['name', 'phone', 'email'] });
+    const stored = await agent('/api/privacy');
+    const { document } = (await agent('/api/import-resume', 'POST', { mutationId: 'try-it', sample: true })) as {
+      document: ResumeDocument;
+    };
+    const entry = (await agent('/api/preview-entry', 'POST', {})) as { url: string };
+    await page.goto(entry.url);
+    await page.locator('[data-resume-id]').first().waitFor();
+    await page.evaluate((id) => localStorage.setItem('cvslate:active', id), document.id);
+    await page.reload();
+    const article = page.locator('article[data-a4-page]').first();
+    // The example's own details are fictitious, so they show as they are.
+    await expect(article).toContainText('林夏');
+
+    await page.getByLabel('更多操作').click();
+    const clear = page.getByRole('menuitem', { name: '取消示例标记' });
+    await expect(clear).toHaveAttribute('title', /隐私模式下/);
+    await clear.click();
+    await expect(page.locator('.sample-tag')).toHaveCount(0);
+    await expect(article.locator('[data-private="name"]').first()).toBeVisible();
+    await expect(article).not.toContainText('linxia@example.com');
+    await expect
+      .poll(async () => (await bridge.service.get(document.id)).data.basics)
+      .toMatchObject({ name: '{{private:name}}', phone: '{{private:phone}}', email: '{{private:email}}' });
+    expect(await agent('/api/privacy')).toEqual(stored);
   } finally {
     await page.close();
     await bridge.close();

@@ -663,6 +663,15 @@ export async function startBridge(options: {
               ? input.operations.map((operation) => String(operation.path))
               : [action ?? 'delete'],
           });
+          // The example mark comes only from creating the built-in example; an agent may take it off, not put it on.
+          if (
+            agent &&
+            Array.isArray(input.operations) &&
+            input.operations.some(
+              (operation) => operation?.path === '/sample' && !['remove', 'test'].includes(operation.op),
+            )
+          )
+            throw new ResumeError('VALIDATION_FAILED', '示例标记只在创建内置示例时产生，agent 只能 remove /sample');
           try {
             if (!action && request.method === 'PATCH')
               send(200, await service.patch(id, input as unknown as ResumePatch));

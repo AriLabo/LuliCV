@@ -76,8 +76,8 @@ function normalizeTarget(value: unknown): ResumeTarget | undefined {
   }
   return target;
 }
-function normalizeTreeFields(record: ResumeRecord): Pick<ResumeRecord, 'parentId' | 'purpose'> {
-  const result: Pick<ResumeRecord, 'parentId' | 'purpose'> = {};
+function normalizeTreeFields(record: ResumeRecord): Pick<ResumeRecord, 'parentId' | 'purpose' | 'sample'> {
+  const result: Pick<ResumeRecord, 'parentId' | 'purpose' | 'sample'> = {};
   if (record.parentId !== undefined) {
     if (
       typeof record.parentId !== 'string' ||
@@ -91,6 +91,10 @@ function normalizeTreeFields(record: ResumeRecord): Pick<ResumeRecord, 'parentId
     if (typeof record.purpose !== 'string' || record.purpose.length > 200)
       throw new Error('VALIDATION_FAILED: purpose 必须是不超过 200 字的文本');
     if (record.purpose.trim()) result.purpose = record.purpose;
+  }
+  if (record.sample !== undefined) {
+    if (typeof record.sample !== 'boolean') throw new Error('VALIDATION_FAILED: sample 只能是 true 或 false');
+    if (record.sample) result.sample = true;
   }
   return result;
 }
@@ -168,6 +172,11 @@ export function validateDocument(document: ResumeDocument): ValidationReport {
 export function contentWarnings(document: ResumeDocument): string[] {
   const warnings: string[] = [];
   if (!document.data.basics.name.trim()) warnings.push('姓名未填写');
+  // Still to be filled in, not a layout fault: the empty section prints no heading.
+  document.data.sections.forEach((section, index) => {
+    if (section.visible && !section.text?.trim() && !section.entries.length)
+      warnings.push(`“${section.title || '未命名栏目'}”没有内容 [sections[${index}]]`);
+  });
   if (
     document.data.basics.email &&
     !isPrivateToken(document.data.basics.email) &&

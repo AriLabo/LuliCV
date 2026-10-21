@@ -9,6 +9,7 @@ export interface TreeSummaryNode {
   revision: number;
   updatedAt: number;
   purpose?: string;
+  sample?: true;
   target?: { company: string; role: string };
   /** Number of content changes in the source since this resume was copied from it. */
   sourceChanges?: number;
@@ -33,6 +34,7 @@ export async function treeSummary(
     revision: document.revision,
     updatedAt: document.updatedAt,
     ...(document.purpose ? { purpose: document.purpose } : {}),
+    ...(document.sample ? { sample: true as const } : {}),
     ...(document.target ? { target: { company: document.target.company, role: document.target.role } } : {}),
     ...(changes.has(document.id) ? { sourceChanges: changes.get(document.id) } : {}),
     children: children.map(toNode),

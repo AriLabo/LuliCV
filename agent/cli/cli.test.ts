@@ -181,8 +181,17 @@ it('CLI uses the existing bridge, emits JSON and exits 2 on stale revision', asy
     await expect(run('delete', copy.id, '--revision', '1')).rejects.toMatchObject({ code: 2 });
     expect(JSON.parse((await run('delete', copy.id, '--revision', '2')).stdout)).toEqual({ deleted: true });
     expect(JSON.parse((await run('list')).stdout)).toHaveLength(1);
-    await expect(run('delete', document.id, '--revision', '2')).rejects.toMatchObject({
-      stderr: expect.stringContaining('至少保留一份'),
+    // As in the editor, the last one can go too; the workspace is then empty and works as before.
+    expect(JSON.parse((await run('delete', document.id, '--revision', '2')).stdout)).toEqual({ deleted: true });
+    expect(JSON.parse((await run('list')).stdout)).toEqual([]);
+    expect(JSON.parse((await run('preview', '--no-open')).stdout)).toMatchObject({ url: expect.any(String) });
+    const sample = JSON.parse((await run('import', '--sample', '--mutation-id', 'cli-sample', '--quiet')).stdout);
+    expect(sample).toMatchObject({ name: '内容运营', revision: 1, sample: true, warnings: [] });
+    expect(JSON.parse((await run('list')).stdout)).toEqual([expect.objectContaining({ id: sample.id, sample: true })]);
+    expect(JSON.parse((await run('validate', sample.id)).stdout)).toMatchObject({ errors: [] });
+    await expect(run('import', '--sample', '--file', patch, '--mutation-id', 'cli-both')).rejects.toMatchObject({
+      code: 1,
+      stderr: expect.stringContaining('--file 或 --sample'),
     });
   } finally {
     await bridge.close();

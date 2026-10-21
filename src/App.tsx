@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Editor } from './studio/Editor';
 import { downloadBlob, pdfFilename } from './studio/files';
 import { ResumePreview } from './studio/ResumePreview';
+import { EmptyWorkspace } from './studio/EmptyWorkspace';
 import { CustomCssNote } from './studio/CustomCssNote';
 import { ThemePanel } from './studio/ThemePanel';
 import { ResumeTree } from './studio/ResumeTree';
@@ -21,9 +22,9 @@ import { PrivacyDialog, type PrivacyDialogEntry } from './studio/PrivacyDialog';
 import { ExportApprovalDialog } from './studio/ExportApprovalDialog';
 import { Wordmark } from './studio/brand';
 import { BackupPanel } from './studio/BackupPanel';
+import { usePreviewZoom } from './studio/preview-zoom';
 
 const densityNames = { comfortable: '舒适', balanced: '适中', dense: '紧凑' } as const;
-const A4_WIDTH_PX = (210 / 25.4) * 96;
 const SPARSE_LAST_PAGE = 0.3;
 const NARROW_QUERY = '(max-width: 1099px)';
 const EDIT_HINT_KEY = 'cvslate:edit-hint-seen';
@@ -145,6 +146,7 @@ function App() {
   const redo = useStudioStore((state) => state.redo);
   const selectResume = useStudioStore((state) => state.selectResume);
   const createResume = useStudioStore((state) => state.createResume);
+  const createSample = useStudioStore((state) => state.createSample);
   const duplicateResume = useStudioStore((state) => state.duplicateResume);
   const renameResume = useStudioStore((state) => state.renameResume);
   const deleteResume = useStudioStore((state) => state.deleteResume);
@@ -157,7 +159,7 @@ function App() {
   const loadSourceChanges = useStudioStore((state) => state.loadSourceChanges);
   const setDensity = useStudioStore((state) => state.setDensity);
   const dismissChange = useStudioStore((state) => state.dismissChange);
-  const previewRef = useRef<HTMLElement>(null);
+  const previewRef = usePreviewZoom();
   const [issues, setIssues] = useState<LayoutIssue[]>([]);
   const [pageFill, setPageFill] = useState<number[]>([]);
   // Side panels open on the page itself; editing is one tap away and pointed out once.
@@ -206,19 +208,6 @@ function App() {
     document.addEventListener('keydown', handleHistoryShortcut);
     return () => document.removeEventListener('keydown', handleHistoryShortcut);
   }, [redo, undo]);
-  // Scale the visible A4 pages to the pane width; the hidden measuring copy stays at real size.
-  useEffect(() => {
-    const pane = previewRef.current;
-    if (!pane) return;
-    const observer = new ResizeObserver(() =>
-      pane.style.setProperty(
-        '--preview-zoom',
-        String(Math.min(1, Math.max(0.3, (pane.clientWidth - 8) / (A4_WIDTH_PX + 60)))),
-      ),
-    );
-    observer.observe(pane);
-    return () => observer.disconnect();
-  }, [ready]);
   useEffect(() => {
     const query = window.matchMedia(NARROW_QUERY);
     const update = () => {
@@ -297,7 +286,17 @@ function App() {
       </div>
     );
   if (!ready || !workspace) return <div className="loading">正在打开本地工作区…</div>;
-  const record = activeRecord!;
+  if (!activeRecord)
+    return (
+      <EmptyWorkspace
+        onUseSample={createSample}
+        onCreateBlank={() => createResume()}
+        error={actionError || storeError}
+        notice={lastChange?.deleted ? lastChange.text : undefined}
+        onDismissNotice={dismissChange}
+      />
+    );
+  const record = activeRecord;
   const theme = getTheme(record.appearance.themeId);
   const layout = record.appearance.layout;
   const storage = mode === 'workspace' ? '本地工作区' : '当前浏览器';
@@ -473,6 +472,7 @@ function App() {
               onClick={() => setTreePopover(!treePopover)}
             >
               <span>{record.name}</span>
+              {record.sample && <span className="sample-tag">示例</span>}
               <span aria-hidden className="switcher-chevron">
                 ▾
               </span>
@@ -515,6 +515,7 @@ function App() {
                 index === path.length - 1 ? (
                   <span key={item.id} className="crumbs-here" aria-label="当前简历" data-resume-id={item.id}>
                     {item.name}
+                    {item.sample && <span className="sample-tag">示例</span>}
                   </span>
                 ) : (
                   <span key={item.id} className="crumbs-step">
@@ -555,14 +556,6 @@ function App() {
           >
             预览
           </button>
-          {editHint && (
-            <div className="edit-hint" role="note">
-              <span>点“编辑”修改内容，随时切回“预览”看效果</span>
-              <button type="button" aria-label="知道了" onClick={dismissEditHint}>
-                知道了
-              </button>
-            </div>
-          )}
         </div>
         {mode === 'workspace' && <ChangeHistory record={record as ResumeDocument} />}
         <button type="button" className="primary-button" disabled={exporting} onClick={() => runAction(exportPdf)}>
@@ -570,6 +563,15 @@ function App() {
         </button>
       </header>
       <div className="global-notices studio-chrome">
+        {/* A strip of its own under the top bar, so it covers none of the controls on a phone. */}
+        {editHint && (
+          <div className="edit-hint" role="note">
+            <span>点“编辑”修改内容，随时切回“预览”看效果</span>
+            <button type="button" aria-label="知道了" onClick={dismissEditHint}>
+              知道了
+            </button>
+          </div>
+        )}
         {conflicts[record.id] && (
           <div role="alert" className="notice notice-warning">
             <span>其他入口已更新简历。本地输入已保留，请选择恢复方式。</span>
@@ -708,11 +710,23 @@ function App() {
                       >
                         恢复上一版本
                       </button>
+                      {record.sample && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          title="去掉“示例”标识。隐私模式下，示例里设为隐私的联系方式会换成你保存的信息，没保存的和链接都会留空。"
+                          onClick={() => {
+                            close();
+                            updateMeta({ sample: false });
+                          }}
+                        >
+                          取消示例标记
+                        </button>
+                      )}
                       <button
                         type="button"
                         role="menuitem"
                         className="danger-link"
-                        disabled={workspace.resumes.length <= 1}
                         onClick={() => {
                           close();
                           if (window.confirm(`删除“${record.name}”？此操作会从${storage}中移除该简历。`))

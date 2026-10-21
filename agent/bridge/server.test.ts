@@ -9,6 +9,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { initializeWorkspace } from './workspace';
 import { startBridge } from './server';
 import { bridgeRequest } from '../cli/client';
+import { cloneSample } from '../../src/core/fixtures';
 async function setup() {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-bridge-'));
   await initializeWorkspace(root);
@@ -228,8 +229,8 @@ it('SSE descriptions associate the same mutation ID with each resume independent
   const { root, bridge } = await setup();
   const controller = new AbortController();
   try {
-    const first = await bridge.service.create(),
-      second = await bridge.service.create();
+    const first = await bridge.service.create({ data: cloneSample() }),
+      second = await bridge.service.create({ data: cloneSample() });
     const events = await fetch(bridge.origin + '/api/events', {
       headers: { Authorization: `Bearer ${bridge.runtime.token}` },
       signal: controller.signal,
@@ -344,7 +345,7 @@ it('serves an agent-readable tree with purposes, targets and content changes in 
   const call = async (route: string, method = 'GET', value?: unknown) =>
     (await bridgeRequest(bridge.runtime, route, method, value)).json() as Promise<Record<string, any>>;
   try {
-    const master = await bridge.service.create({ name: '完整经历' });
+    const master = await bridge.service.create({ name: '完整经历', data: cloneSample() });
     const direction = await call(`/api/resumes/${master.id}/duplicate`, 'POST', {
       name: '后端方向',
       mutationId: 'tree-direction',
@@ -451,7 +452,7 @@ it('labels each past revision from its own before and after, even after later ed
   const call = async (route: string, method = 'GET', value?: unknown) =>
     (await bridgeRequest(bridge.runtime, route, method, value)).json() as Promise<Record<string, any>>;
   try {
-    const document = await bridge.service.create({ name: '完整经历' });
+    const document = await bridge.service.create({ name: '完整经历', data: cloneSample() });
     await call(`/api/resumes/${document.id}`, 'PATCH', {
       baseRevision: 1,
       mutationId: 'drop-summary',
@@ -491,7 +492,7 @@ it('keeps a source deletion, addition or move pending until the copy has the sam
   const pending = async (id: string) => (await call(`/api/resumes/${id}/source-diff`)).changes;
   const counted = async () => (await call('/api/tree')).resumes[0].children[0].sourceChanges;
   try {
-    const master = await bridge.service.create({ name: '完整经历' });
+    const master = await bridge.service.create({ name: '完整经历', data: cloneSample() });
     const copy = await call(`/api/resumes/${master.id}/duplicate`, 'POST', { name: '投递版', mutationId: 'copy' });
     const awards = {
       id: 'awards',
@@ -575,7 +576,7 @@ it('keeps serving the web app from memory after losing file access and says why 
     expect(await (await fetch(bridge.origin + '/')).text()).toContain('fixture');
     expect((await fetch(bridge.origin + '/../cvslate.json')).status).toBe(404);
     expect(await (await bridgeRequest(bridge.runtime, '/api/health')).json()).toMatchObject({ fileAccess: false });
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     const failure = await bridgeRequest(bridge.runtime, `/api/resumes/${document.id}/inspect`, 'POST', {
       revision: 1,
     }).catch((error) => error);
@@ -658,7 +659,7 @@ it('installs, serves, replaces and removes workspace themes, and skips broken on
     expect(restarted.invalid).toEqual([{ folder: 'broken-demo', errors: [expect.stringContaining('manifest.json')] }]);
     const resume = await bridge.service.create({
       name: '主题使用者',
-      appearance: { ...(await bridge.service.create()).appearance, themeId: 'ink-demo' },
+      appearance: { ...(await bridge.service.create({ data: cloneSample() })).appearance, themeId: 'ink-demo' },
     });
     expect(await (await bridgeRequest(bridge.runtime, '/api/themes/ink-demo', 'DELETE', {})).json()).toEqual({
       removed: 'ink-demo',

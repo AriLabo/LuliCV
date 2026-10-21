@@ -8,6 +8,7 @@ import { expect, it } from 'vitest';
 import { initializeWorkspace } from '../bridge/workspace';
 import { startBridge } from '../bridge/server';
 import { runtimeAt } from '../cli/client';
+import { cloneSample } from '../../src/core/fixtures';
 
 it('real stdio clients share one writer, deduplicate across restarts and return conflicts safely', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'cvslate-mcp-'));
@@ -58,7 +59,7 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
     return rest;
   };
   try {
-    const doc = await bridge.service.create();
+    const doc = await bridge.service.create({ data: cloneSample() });
     const first = await connect(),
       second = await connect();
     const tools = await first.listTools();
@@ -92,6 +93,9 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
     const imported = written(await call(first, 'import_resume', importInput));
     expect(imported).toMatchObject({ document: { name: '核对导入', data: { sections: [] } }, warnings: [] });
     expect(written(await call(second, 'import_resume', importInput))).toEqual(imported);
+    expect(written(await call(first, 'import_resume', { mutationId: 'mcp-sample', sample: true }))).toMatchObject({
+      document: { name: '内容运营', sample: true },
+    });
     const patch = {
       id: doc.id,
       baseRevision: 1,

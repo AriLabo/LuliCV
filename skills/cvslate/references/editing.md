@@ -2,7 +2,7 @@
 
 ## Patches
 
-A patch (see the example in SKILL.md) applies RFC 6902 operations to `/name`, `/data/...`, `/appearance/...`, `/target`, `/parentId`, `/purpose` or `/source/revision`. Change only the parts you mean to change: replacing `/data` or `/data/sections` as a whole is rejected, because it would overwrite whatever the user edited meanwhile. `--quiet` on `list`, `import`, `duplicate` and `patch` returns `{id, name, revision, …}` instead of the whole document.
+A patch (see the example in SKILL.md) applies RFC 6902 operations to `/name`, `/data/...`, `/appearance/...`, `/target`, `/parentId`, `/purpose`, `/sample` (remove it only when the user asks) or `/source/revision`. Change only the parts you mean to change: replacing `/data` or `/data/sections` as a whole is rejected, because it would overwrite whatever the user edited meanwhile. `--quiet` on `list`, `import`, `duplicate` and `patch` returns `{id, name, revision, …}` instead of the whole document.
 
 ## Page target and appearance
 

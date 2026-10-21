@@ -42,6 +42,7 @@ const topLabels = {
   target: '投递目标',
   parentId: '所在位置',
   purpose: '定位',
+  sample: '示例标记',
   source: '来源改动已看过',
 } as const;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createResumeRecord } from './defaults';
+import { createResumeRecord, sampleResumeInput } from './defaults';
 import { contentWarnings, normalizeDocument, normalizeImport, validateAppearance, validateDocument } from './document';
 import type { ResumeData } from './types';
 import { validateResumeData } from './validation';
@@ -26,6 +26,17 @@ describe('document normalization', () => {
     record.data.basics.name = '';
     expect(validateDocument(normalizeDocument(record)).warnings).toContain('姓名未填写');
     expect(() => normalizeDocument({ ...record, data: { ...record.data, extra: true } })).toThrow();
+  });
+  it('lists a blank resume’s sections as still to be filled in, with where each one is', () => {
+    const record = createResumeRecord();
+    record.data.sections[4].visible = false;
+    const warnings = validateDocument(normalizeDocument(record)).warnings;
+    expect(warnings.filter((warning) => warning.includes('没有内容'))).toEqual([
+      '“个人简介”没有内容 [sections[0]]',
+      '“工作经历”没有内容 [sections[1]]',
+      '“项目经历”没有内容 [sections[2]]',
+      '“教育背景”没有内容 [sections[3]]',
+    ]);
   });
 });
 it('rejects remote photos to keep rendering local', () => {
@@ -131,4 +142,16 @@ it('accepts a resume stylesheet only when it is safe, and leaves its warnings ou
   expect(document.appearance.css).toBe('.rs-titel { margin: 0; }');
   expect(validateDocument(document).warnings).toContain('appearance.css：.rs-titel 不是骨架里的类名，这条规则不会生效');
   expect(contentWarnings(document)).toEqual(validateDocument(normalizeDocument(record)).warnings);
+});
+it('keeps a sample mark only as true', () => {
+  const record = createResumeRecord();
+  expect(normalizeDocument({ ...record, sample: true }).sample).toBe(true);
+  expect(normalizeDocument({ ...record, sample: false } as never)).not.toHaveProperty('sample');
+  expect(() => normalizeDocument({ ...record, sample: 'yes' } as never)).toThrow('sample');
+});
+
+it('ships a built-in example that passes the same checks as imported content', () => {
+  const { data } = sampleResumeInput();
+  expect(validateResumeData(data)).toEqual([]);
+  expect(contentWarnings(normalizeDocument({ ...createResumeRecord(), data }))).toEqual([]);
 });

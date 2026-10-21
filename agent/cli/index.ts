@@ -35,7 +35,7 @@ import { ThemeStore } from '../bridge/themes';
 import { applyTheme, checkTheme, installTheme, newTheme, removeTheme, themeHelp } from './theme';
 
 // Agents only need identity and revision after a write; full documents can be thousands of characters.
-function summary({ id, name, revision, updatedAt, target, source, parentId, purpose }: ResumeDocument) {
+function summary({ id, name, revision, updatedAt, target, source, parentId, purpose, sample }: ResumeDocument) {
   return {
     id,
     name,
@@ -43,6 +43,7 @@ function summary({ id, name, revision, updatedAt, target, source, parentId, purp
     updatedAt,
     ...(parentId ? { parentId } : {}),
     ...(purpose ? { purpose } : {}),
+    ...(sample ? { sample } : {}),
     ...(target ? { target: { company: target.company, role: target.role } } : {}),
     ...(source ? { source } : {}),
   };
@@ -53,7 +54,7 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 const help =
-  'cvslate version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
+  'cvslate version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
   themeHelp +
   '\nlist / import / duplicate / patch 加 --quiet 只输出 id、名称、revision 等摘要，get 加 --quiet 省略 JD 原文';
 // Flags each command accepts beyond --workspace / --help; anything else is an error rather than silently ignored.
@@ -70,7 +71,7 @@ const commandFlags: Record<string, string[]> = {
   stop: [],
   tree: [],
   validate: [],
-  import: ['file', 'mutation-id', 'name', 'quiet'],
+  import: ['file', 'sample', 'mutation-id', 'name', 'quiet'],
   preview: ['port', 'open', 'no-open'],
   serve: ['port'],
   list: ['quiet'],
@@ -138,6 +139,7 @@ function compareContent(mine: ResumeDocument, other: ResumeDocument) {
     target: undefined,
     parentId: undefined,
     purpose: undefined,
+    sample: undefined,
     source: undefined,
   });
   const paths = diffDocuments(contentOnly(other), contentOnly(mine)).map((operation) => operation.path);
@@ -167,6 +169,7 @@ async function main() {
         images: { type: 'string' },
         parent: { type: 'string' },
         source: { type: 'boolean' },
+        sample: { type: 'boolean' },
         against: { type: 'string' },
         inspect: { type: 'boolean' },
         port: { type: 'string' },
@@ -434,12 +437,11 @@ async function main() {
     return;
   }
   if (command === 'import') {
-    if (!values.file || !values['mutation-id'])
-      throw new ResumeError('VALIDATION_FAILED', 'import 需要 --file 和 --mutation-id');
-    const data = JSON.parse(await readFile(values.file, 'utf8'));
+    if (!values['mutation-id'] || !values.file === !values.sample)
+      throw new ResumeError('VALIDATION_FAILED', 'import 需要 --mutation-id，以及 --file 或 --sample 其中之一');
     const result = await (
       await bridgeRequest(runtime, '/api/import-resume', 'POST', {
-        data,
+        ...(values.sample ? { sample: true } : { data: JSON.parse(await readFile(values.file!, 'utf8')) }),
         mutationId: values['mutation-id'],
         ...(values.name === undefined ? {} : { name: values.name }),
       })
@@ -559,8 +561,6 @@ async function main() {
     const revision = Number(values.revision);
     if (!Number.isSafeInteger(revision) || revision < 1)
       throw new ResumeError('VALIDATION_FAILED', 'delete 需要 --revision（最近读取到的 revision）');
-    const documents = (await (await bridgeRequest(runtime, '/api/resumes')).json()) as ResumeDocument[];
-    if (documents.length <= 1) throw new ResumeError('VALIDATION_FAILED', '工作区至少保留一份简历');
     response = await bridgeRequest(runtime, route, 'DELETE', {
       baseRevision: revision,
       mutationId: values['mutation-id'] ?? randomUUID(),

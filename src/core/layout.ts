@@ -1,5 +1,5 @@
 export interface LayoutIssue {
-  code: 'overflow' | 'blank-page' | 'orphan-heading' | 'missing-content' | 'too-small-font' | 'empty-section';
+  code: 'overflow' | 'blank-page' | 'orphan-heading' | 'missing-content' | 'too-small-font';
   message: string;
   page?: number;
 }

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { sampleResume } from '../studio/fixtures';
-import { baseAppearance } from '../core/defaults';
+import { baseAppearance, blankResumeData } from '../core/defaults';
 import { buildBlocks, SkeletonHeader } from './skeleton';
 
 describe('theme block pagination semantics', () => {
@@ -13,6 +13,11 @@ describe('theme block pagination semantics', () => {
 
     expect(entryContent.length).toBeGreaterThan(0);
     expect(entryContent.every((block) => block.continuation)).toBe(true);
+  });
+
+  it('prints no heading for a section with nothing in it, an empty summary included', () => {
+    const blocks = buildBlocks(blankResumeData());
+    expect(blocks).toEqual([]);
   });
 });
 

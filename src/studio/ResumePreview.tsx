@@ -110,16 +110,11 @@ export function ResumePreview({
       await nextFrame();
       await nextFrame();
       if (cancelled || !pagesRef.current) return;
-      const emptySections = record.data.sections.filter(
-        (section) => section.visible && !section.text?.trim() && section.entries.length === 0,
+      const issues: LayoutIssue[] = inspectLayout(
+        pagesRef.current,
+        rendered.blocks.length,
+        record.appearance.layout.baseFontPt,
       );
-      const issues: LayoutIssue[] = [
-        ...emptySections.map((section) => ({
-          code: 'empty-section' as const,
-          message: `“${section.title || '未命名栏目'}”没有内容`,
-        })),
-        ...inspectLayout(pagesRef.current, rendered.blocks.length, record.appearance.layout.baseFontPt),
-      ];
       const pageFill = measurePageFill(pagesRef.current);
       onIssues(issues);
       onPageFill?.(pageFill);

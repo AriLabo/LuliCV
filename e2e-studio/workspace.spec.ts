@@ -5,12 +5,13 @@ import path from 'node:path';
 import { initializeWorkspace } from '../agent/bridge/workspace';
 import { startBridge } from '../agent/bridge/server';
 import { bridgeRequest } from '../agent/cli/client';
+import { cloneSample } from '../src/core/fixtures';
 
 async function setup() {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-web-'));
   await initializeWorkspace(root);
   const bridge = await startBridge({ workspace: root, dist: path.resolve('dist') });
-  const document = await bridge.service.create();
+  const document = await bridge.service.create({ data: cloneSample() });
   const entry = (await (await bridgeRequest(bridge.runtime, '/api/preview-entry', 'POST', {})).json()) as {
     url: string;
   };

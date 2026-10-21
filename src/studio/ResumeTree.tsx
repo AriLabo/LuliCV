@@ -150,6 +150,7 @@ export function ResumeTree({
               ) : (
                 document.name
               )}
+              {document.sample && <span className="sample-tag">示例</span>}
             </span>
             <span className="tree-state">
               {changed ? (

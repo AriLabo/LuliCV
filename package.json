@@ -1,6 +1,6 @@
 {
   "name": "@arilabo/cvslate",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "供 AI Agent 使用的本地简历编辑工具：Skill、CLI 和网页编辑器",
   "author": "AriLabo",
   "license": "MIT",

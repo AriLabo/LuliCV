@@ -1,9 +1,9 @@
 import { expect, it } from 'vitest';
 import { ResumeService } from './service';
 import { MemoryRepository } from './memory-repository';
-import { createResumeRecord } from './defaults';
+import { sampleRecord } from './fixtures';
 async function setup() {
-  const service = new ResumeService(new MemoryRepository(), createResumeRecord);
+  const service = new ResumeService(new MemoryRepository(), sampleRecord);
   return { service, document: await service.create() };
 }
 it('permits only one concurrent writer at the same revision', async () => {
@@ -158,4 +158,59 @@ it('diffs a first, changed and cleared target into patches the service accepts',
     });
     expect(current.target).toEqual(next);
   }
+});
+it('saves the built-in example once, marked as a sample through copies, until the user clears the mark', async () => {
+  const { createResumeRecord, sampleName } = await import('./defaults');
+  const { diffDocuments } = await import('./mutation');
+  const service = new ResumeService(new MemoryRepository(), createResumeRecord);
+  const blank = await service.create();
+  expect(blank.sample).toBeUndefined();
+  expect(blank.data.basics.name).toBe('');
+  expect(blank.data.sections.every((section) => section.entries.length === 0 && !section.text)).toBe(true);
+
+  const { document: sample } = await service.importResume({ mutationId: 'try', sample: true });
+  expect(sample).toMatchObject({ name: sampleName, sample: true, revision: 1 });
+  expect(sample.data.basics.name).toBe('林夏');
+  expect((await service.importResume({ mutationId: 'try', sample: true })).document).toEqual(sample);
+  await expect(service.importResume({ mutationId: 'both', sample: true, data: blank.data })).rejects.toMatchObject({
+    code: 'VALIDATION_FAILED',
+  });
+  await expect(service.importResume({ mutationId: 'false', sample: false })).rejects.toMatchObject({
+    code: 'VALIDATION_FAILED',
+  });
+
+  const copy = await service.duplicate(sample.id, '内容运营 · 投递版', {
+    mutationId: 'copy',
+    expectedSourceRevision: 1,
+  });
+  expect(copy.sample).toBe(true);
+  await expect(
+    service.patch(copy.id, {
+      baseRevision: 1,
+      mutationId: 'deep',
+      operations: [{ op: 'add', path: '/sample/x', value: true }],
+    }),
+  ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+  const cleared = await service.patch(copy.id, {
+    baseRevision: 1,
+    mutationId: 'clear',
+    operations: [{ op: 'remove', path: '/sample' }],
+  });
+  expect(cleared).not.toHaveProperty('sample');
+  const { sample: _, ...unmarked } = sample;
+  const edited = await service.patch(sample.id, {
+    baseRevision: 1,
+    mutationId: 'diff-clear',
+    operations: diffDocuments(sample, unmarked),
+  });
+  expect(edited).not.toHaveProperty('sample');
+  expect(edited.data).toEqual(sample.data);
+
+  const { document: again } = await service.importResume({ mutationId: 'again', sample: true });
+  const replaced = await service.replace(
+    again.id,
+    { baseRevision: 1, mutationId: 'mine' },
+    { data: blank.data, appearance: again.appearance },
+  );
+  expect(replaced).not.toHaveProperty('sample');
 });

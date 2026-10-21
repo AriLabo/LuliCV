@@ -11,6 +11,29 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { bridgeRequest } from '../agent/cli/client';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { cloneSample } from '../src/core/fixtures';
+
+test('inspect passes a blank resume: sections still to be filled in are content hints, not layout issues', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'resume-blank-'));
+  await initializeWorkspace(root);
+  const bridge = await startBridge({
+    workspace: root,
+    dist: path.resolve('dist'),
+    renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
+  });
+  try {
+    const document = await bridge.service.create({});
+    const run = (...args: string[]) =>
+      promisify(execFile)(process.execPath, [path.resolve('agent-dist/cli.mjs'), ...args, '--workspace', root]);
+    const report = JSON.parse((await run('inspect', document.id)).stdout);
+    expect(report).toMatchObject({ pageCount: 1, layoutValid: true, issues: [] });
+    const validated = JSON.parse((await run('validate', document.id)).stdout);
+    expect(JSON.stringify(validated)).toContain('“工作经历”没有内容');
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test('inspect and PDF use the same two-page snapshot while editing continues', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-pdf-'));
@@ -29,7 +52,7 @@ test('inspect and PDF use the same two-page snapshot while editing continues', a
   await client.connect(transport);
   const call = (name: string, args: Record<string, unknown>) => client.callTool({ name, arguments: args });
   try {
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     const entry = document.data.sections[1].entries[0];
     const operations = Array.from({ length: 15 }, (_, index) => ({
       op: 'add' as const,
@@ -174,7 +197,7 @@ test('broken photo decode fails inspect instead of reporting ready', async () =>
     renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
   });
   try {
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     await bridge.service.patch(document.id, {
       baseRevision: 1,
       mutationId: 'photo',
@@ -206,7 +229,7 @@ test('a page asset that fails to load fails inspect at once instead of waiting o
     renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
   });
   try {
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     const started = Date.now();
     await expect(
       bridgeRequest(bridge.runtime, `/api/resumes/${document.id}/inspect`, 'POST', { revision: 1 }),
@@ -226,7 +249,7 @@ test('full collaboration flow: duplicate, Agent, Human, conflict recovery, and t
     renderer: (service, runtime) => new WorkspaceRenderer(service, runtime),
   });
   try {
-    const master = await bridge.service.create({ name: '虚构母版 · 压力测试' });
+    const master = await bridge.service.create({ name: '虚构母版 · 压力测试', data: cloneSample() });
     const entry = master.data.sections[1].entries[0];
     await bridge.service.patch(master.id, {
       baseRevision: 1,

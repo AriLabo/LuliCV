@@ -1,10 +1,10 @@
 import { expect, it } from 'vitest';
 import { normalizeDocument } from '../core/document';
-import { createResumeRecord } from './defaults';
+import { sampleRecord } from './fixtures';
 import { formatChanges, listChanges, summarizeChanges } from '../core/change-summary';
 import type { ExperienceEntry, ResumeDocument } from '../core/types';
 
-const base = () => normalizeDocument(createResumeRecord());
+const base = () => normalizeDocument(sampleRecord());
 const edit = (document: ResumeDocument, change: (copy: ResumeDocument) => void) => {
   const copy = structuredClone(document);
   change(copy);

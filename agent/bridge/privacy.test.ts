@@ -6,6 +6,7 @@ import { initializeWorkspace } from './workspace';
 import { startBridge, type Redaction } from './server';
 import { bridgeRequest } from '../cli/client';
 import { browserCookie } from './testing';
+import { cloneSample } from '../../src/core/fixtures';
 import type { ResumeDocument } from '../../src/core/types';
 
 // Fictitious values: the sample resume's own, an older phone number, and a link added below.
@@ -67,7 +68,7 @@ async function setup(options: { exportApprovalMs?: number } = {}) {
     ) as ResumeDocument['data'];
   /** A resume with real values and an older revision, written before privacy mode was on. */
   const resume = async (name = '张三 · 后端') => {
-    const created = (await agent('/api/resumes', 'POST', { name })) as ResumeDocument;
+    const created = (await agent('/api/resumes', 'POST', { name, data: cloneSample() })) as ResumeDocument;
     await agent(`/api/resumes/${created.id}`, 'PATCH', {
       baseRevision: 1,
       mutationId: 'old-phone',
@@ -171,6 +172,58 @@ it('moves the values out of the resumes and shows placeholders to everyone; only
   }
 });
 
+it('saves the built-in example in privacy mode as it is, and protects the person’s details typed into it', async () => {
+  const { root, bridge, agent, refused, resume } = await setup();
+  try {
+    const { id } = await resume();
+    await agent('/api/privacy', 'PUT', { enabled: true, fields });
+    // Only creating the example marks a resume as one: an agent cannot mark the person's own.
+    const { revision } = await agent(`/api/resumes/${id}`);
+    for (const op of ['add', 'replace'])
+      expect(
+        await refused(`/api/resumes/${id}`, 'PATCH', {
+          baseRevision: revision,
+          mutationId: `mark-${op}`,
+          operations: [{ op, path: '/sample', value: true }],
+        }),
+      ).toBe('VALIDATION_FAILED');
+    const stored = await agent('/api/privacy');
+    const { document } = await agent('/api/import-resume', 'POST', { mutationId: 'try-it', sample: true });
+    expect(document).toMatchObject({
+      sample: true,
+      data: {
+        basics: { name: '林夏', email: 'linxia@example.com', links: [{}, { url: 'https://example.com/linxia' }] },
+      },
+    });
+    expect(JSON.stringify(document)).not.toContain('{{private:');
+    expect(await agent('/api/privacy')).toEqual(stored);
+    const typed = await agent(`/api/resumes/${document.id}`, 'PATCH', {
+      baseRevision: 1,
+      mutationId: 'mine-now',
+      operations: [
+        { op: 'replace', path: '/data/basics/name', value: '张三' },
+        { op: 'replace', path: '/data/sections/0/text', value: '联系 张三' },
+      ],
+    });
+    expect(typed.data.basics.name).toBe('{{private:name}}');
+    expect(typed.data.sections[0].text).toBe('联系 {{private:name}}');
+    expect(JSON.stringify(await agent(`/api/resumes/${document.id}`))).not.toContain('张三');
+    // Clearing the mark makes it the person's own: their details in place of the example's, none of the example's stored.
+    const again = (await agent('/api/import-resume', 'POST', { mutationId: 'try-again', sample: true })).document;
+    const cleared = await agent(`/api/resumes/${again.id}`, 'PATCH', {
+      baseRevision: 1,
+      mutationId: 'keep-it',
+      operations: [{ op: 'remove', path: '/sample' }],
+    });
+    expect(cleared.sample).toBeUndefined();
+    expect(cleared.data.basics).toMatchObject({ name: '{{private:name}}', email: '{{private:email}}' });
+    expect(await agent('/api/privacy')).toEqual(stored);
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 it('stores real values written into a resume as placeholders, and refuses ones it cannot place', async () => {
   const { root, bridge, browser, agent, exported, resume } = await setup();
   try {
@@ -202,7 +255,9 @@ it('stores real values written into a resume as placeholders, and refuses ones i
     // Copying a token is fine, including into a copy's name.
     const copy = await agent(`${route}/duplicate`, 'POST', { name: '{{private:name}} · 前端', mutationId: 'copy' });
     expect(copy.name).toBe('{{private:name}} · 前端');
-    expect(await agent('/api/resumes', 'POST', { name: '{{private:name}} 的新简历' })).toMatchObject({
+    expect(
+      await agent('/api/resumes', 'POST', { name: '{{private:name}} 的新简历', data: cloneSample() }),
+    ).toMatchObject({
       name: '{{private:name}} 的新简历',
     });
 
@@ -254,7 +309,7 @@ it('asks the person which value to export when resumes disagree', async () => {
   const { root, bridge, browser, agent, refused, resume } = await setup();
   try {
     await resume();
-    const other = (await agent('/api/resumes', 'POST', { name: '张三 · 前端' })) as ResumeDocument;
+    const other = (await agent('/api/resumes', 'POST', { name: '张三 · 前端', data: cloneSample() })) as ResumeDocument;
     await agent(`/api/resumes/${other.id}`, 'PATCH', {
       baseRevision: 1,
       mutationId: 'phone',
@@ -358,7 +413,7 @@ it('exports for an agent only after the person approves the requested revision, 
     expect(first).toMatchObject({ status: 'pending', id, revision, pages: 1, webOpen: false });
     expect(first.message).toContain('没有打开的 CVSlate 网页');
     expect((await request(id, revision)).requestId).toBe(first.requestId);
-    const other = (await agent('/api/resumes', 'POST', { name: '备用' })) as ResumeDocument;
+    const other = (await agent('/api/resumes', 'POST', { name: '备用', data: cloneSample() })) as ResumeDocument;
     expect(await refused(`/api/resumes/${other.id}/export`, 'POST', { revision: 1 })).toBe('EXPORT_PENDING');
     const pending = (await browser('/api/export-requests')).requests;
     expect(pending).toMatchObject([

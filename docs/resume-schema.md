@@ -123,6 +123,7 @@ Section 在 `sections` 中的顺序就是编辑器和简历中的顺序。`visib
 | `parentId` | 可选。在简历树中放在哪份主简历或方向下，只是组织关系，不继承任何内容。最多三层；投递版下面不能再放简历；不能形成循环。复制时默认放在来源下（来源是投递版时与它同级），可用 patch 的 `/parentId` 修改或删除（删除即放到顶层） |
 | `purpose` | 可选。主简历或方向的一句话定位（最多 200 字），例如“投后端、高并发岗位”，供人和 Agent 选择方向 |
 | `source` | 复制时由存储层写入 `{id, revision}`，记录内容从哪份、哪个版本复制而来；用于提示“来源在复制后又改过”。`id` 只读；`revision` 只能用 `replace /source/revision` 向前移动到来源已有的版本，表示之前的来源改动已看过 |
+| `sample` | 可选，只能是 `true`。内置的虚构示例（网页“使用这份示例”、CLI `import --sample`、MCP `import_resume` 的 `sample: true`）带这个标记，复制时沿用；`remove /sample` 或网页的“取消示例标记”去掉它；Agent 不能用 patch 加上它。不是示例时不写这一项 |
 
 ## 版本策略
 

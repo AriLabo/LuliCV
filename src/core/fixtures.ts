@@ -1,4 +1,5 @@
-import type { ResumeData } from './types';
+import { createResumeRecord } from './defaults';
+import type { ResumeData, ResumeRecord } from './types';
 
 const layout = { pageBreakBefore: false };
 
@@ -99,4 +100,9 @@ export const sampleResume: ResumeData = {
 
 export function cloneSample(): ResumeData {
   return structuredClone(sampleResume);
+}
+
+/** A new resume holding the test sample, for tests that edit existing content. */
+export function sampleRecord(name?: string): ResumeRecord {
+  return { ...createResumeRecord(name), data: cloneSample() };
 }

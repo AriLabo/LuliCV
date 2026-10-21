@@ -1,3 +1,4 @@
+import { demoResume } from './demo-resume';
 import { ResumeError } from './errors';
 import { LINK_LIMITS } from './limits';
 import { sitePlatform } from './links';
@@ -136,7 +137,22 @@ export function fieldOf(key: string): PrivateField | undefined {
   return undefined;
 }
 
-type Located = { name?: string; data: ResumeData };
+type Located = { name?: string; data: ResumeData; sample?: true };
+
+const exampleValues = new Map<PrivateField, string[]>([
+  ...basicFields.flatMap((field) => {
+    const value = demoResume.basics[field];
+    return value ? [[field, [value]] as [PrivateField, string[]]] : [];
+  }),
+  ['links', demoResume.basics.links.map((link) => link.url).filter(Boolean)],
+]);
+/**
+ * The built-in example's own details are fictitious, so in a resume still marked as the example they are not private
+ * values: never taken into the store, refused, masked or kept as an alias. Only that exact value is exempt: a sample
+ * mark alone (an imported file can carry one) or real details typed into the example are handled like any others.
+ */
+const fictitious = (document: Located, field: PrivateField, value: string) =>
+  document.sample === true && !!exampleValues.get(field)?.includes(value);
 interface Secret {
   key: string;
   field: PrivateField;
@@ -223,16 +239,43 @@ function scrubber(...groups: Secret[][]): (text: string) => string {
       .join('');
 }
 
-/** A copy of `value` with every string passed through `map`; properties named by `skip` are copied as they are. */
-export function mapStrings<T>(value: T, map: (text: string) => string, skip?: (key: string) => boolean): T {
-  if (typeof value === 'string') return map(value) as T;
-  if (Array.isArray(value)) return value.map((item) => mapStrings(item, map, skip)) as T;
+/**
+ * A copy of `value` with every string passed through `map`; properties named by `skip` are copied as they are. `map`
+ * also gets where the string sits, an array item named by its id when it has one: /data/sections/experience/title.
+ */
+export function mapStrings<T>(
+  value: T,
+  map: (text: string, path: string) => string,
+  skip?: (key: string) => boolean,
+  path = '',
+): T {
+  if (typeof value === 'string') return map(value, path) as T;
+  if (Array.isArray(value))
+    return value.map((item, index) => {
+      const id = (item as { id?: unknown } | null)?.id;
+      return mapStrings(item, map, skip, `${path}/${typeof id === 'string' ? id : index}`);
+    }) as T;
   if (value && typeof value === 'object')
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, skip?.(key) ? item : mapStrings(item, map, skip)]),
+      Object.entries(value).map(([key, item]) => [
+        key,
+        skip?.(key) ? item : mapStrings(item, map, skip, `${path}/${key}`),
+      ]),
     ) as T;
   return value;
 }
+
+const exampleText = new Map<string, string>();
+mapStrings(demoResume, (text, path) => (exampleText.set(`/data${path}`, text), text));
+/**
+ * In a resume still marked as the example, a string left exactly as the example wrote it, where it wrote it, is the
+ * example's wording: its 上海 is not the person's 上海 even when theirs is the same, and a token there would show their
+ * value in the example. Everything else, the same city typed anywhere included, is replaced as in any resume.
+ */
+const exceptExample =
+  (document: Located, replace: (text: string) => string) =>
+  (text: string, path: string): string =>
+    document.sample === true && exampleText.get(path) === text ? text : replace(text);
 
 function countTokens(value: unknown, counts = new Map<string, number>()) {
   mapStrings(value, (text) => {
@@ -286,8 +329,14 @@ export interface Sealed<T> {
  * A resume as it may be stored in privacy mode: private fields hold their token, real values anywhere become
  * tokens, a new link URL is taken into the store, and every token refers to something the store can fill.
  * A private basic field may only change through the store, so a different value written into one is refused.
+ * `previous` is the resume as it was before this write, for telling when it stops being the example.
  */
-export function sealPrivate<T extends Located>(document: T, settings: PrivacySettings, store: PrivateStore): Sealed<T> {
+export function sealPrivate<T extends Located>(
+  document: T,
+  settings: PrivacySettings,
+  store: PrivateStore,
+  previous?: Located,
+): Sealed<T> {
   const fields = settings.enabled ? settings.fields : [];
   const enabled = new Set<PrivateField>(fields);
   // A token of a field that is no longer private (an older revision restored) gets its value back.
@@ -307,8 +356,17 @@ export function sealPrivate<T extends Located>(document: T, settings: PrivacySet
       ),
     );
   let replace = scrub();
+  // A resume that stops being the example (its mark cleared, its content replaced) is the person's own from then on:
+  // the example's details left in its private fields give way to the person's, and are never taken into the store.
+  if (previous?.sample === true && document.sample !== true) {
+    for (const field of basicFields)
+      if (enabled.has(field) && exampleValues.get(field)?.includes(basics[field] ?? ''))
+        basics[field] = tokenFor(field);
+    if (enabled.has('links'))
+      for (const link of basics.links) if (exampleValues.get('links')!.includes(link.url)) link.url = '';
+  }
   for (const field of basicFields) {
-    if (!enabled.has(field) || !basics[field]) continue;
+    if (!enabled.has(field) || !basics[field] || fictitious(document, field, basics[field]!)) continue;
     const value = replace(basics[field]!);
     if (hasToken(value) || !value.trim()) {
       basics[field] = value;
@@ -331,7 +389,7 @@ export function sealPrivate<T extends Located>(document: T, settings: PrivacySet
   }
   if (enabled.has('links'))
     for (const link of basics.links) {
-      if (!link.url) continue;
+      if (!link.url || fictitious(document, 'links', link.url)) continue;
       const value = replace(link.url);
       if (hasToken(value) || !value.trim()) {
         link.url = value;
@@ -348,7 +406,7 @@ export function sealPrivate<T extends Located>(document: T, settings: PrivacySet
       link.url = tokenFor(key);
     }
   const before = countTokens(filled);
-  const sealed = mapStrings(result, replace, (key) => key === 'appearance') as T;
+  const sealed = mapStrings(result, exceptExample(document, replace), (key) => key === 'appearance') as T;
   for (const [key, count] of countTokens(sealed)) {
     const field = fieldOf(key);
     if (!field || key === 'link' || !enabled.has(field) || (field === 'links' && !Object.hasOwn(next.values, key))) {
@@ -390,14 +448,21 @@ export class PrivacyView {
 
   /** A resume with every private value replaced; private fields that still hold any other text become their token. */
   mask<T extends Located>(document: T): T {
-    const masked = mapStrings(document, this.scrub) as T;
+    const masked = mapStrings(document, exceptExample(document, this.scrub)) as T;
     const basics = masked.data.basics;
     const enabled = new Set(this.fields);
     for (const field of basicFields)
-      if (enabled.has(field) && basics[field] && !hasToken(basics[field]!)) basics[field] = tokenFor(field);
+      if (
+        enabled.has(field) &&
+        basics[field] &&
+        !hasToken(basics[field]!) &&
+        !fictitious(document, field, basics[field]!)
+      )
+        basics[field] = tokenFor(field);
     if (enabled.has('links'))
       for (const link of basics.links)
-        if (link.url && !hasToken(link.url)) link.url = tokenFor(matchKey(this.store, 'links', link.url) ?? 'link');
+        if (link.url && !hasToken(link.url) && !fictitious(document, 'links', link.url))
+          link.url = tokenFor(matchKey(this.store, 'links', link.url) ?? 'link');
     return masked;
   }
 
@@ -489,7 +554,7 @@ export function planPrivacy<T extends Located>(
     const groups: Array<{ canon: string; raws: Map<string, number>; resumes: number }> = [];
     for (const document of documents) {
       const value = document.data.basics[field as BasicField];
-      if (!value || hasToken(value) || !value.trim()) continue;
+      if (!value || hasToken(value) || !value.trim() || fictitious(document, field, value)) continue;
       const canon = canonical(field, value);
       let group = groups.find((item) => item.canon === canon);
       if (!group) groups.push((group = { canon, raws: new Map(), resumes: 0 }));
@@ -526,20 +591,23 @@ export function planPrivacy<T extends Located>(
     if (old && (!chosen || canonical(field, old) !== chosen.canon)) alias(field, old);
     for (const document of current.history) {
       const value = document.data.basics[field as BasicField];
-      if (value && (!chosen || canonical(field, value) !== chosen.canon)) alias(field, value);
+      if (value && !fictitious(document, field, value) && (!chosen || canonical(field, value) !== chosen.canon))
+        alias(field, value);
     }
   }
   if (added.includes('links')) {
     for (const document of documents)
       for (const link of document.data.basics.links) {
-        if (!link.url.trim() || hasToken(link.url) || matchKey(store, 'links', link.url)) continue;
+        if (!link.url.trim() || hasToken(link.url) || fictitious(document, 'links', link.url)) continue;
+        if (matchKey(store, 'links', link.url)) continue;
         const key = linkKeyFor(link.id, store);
         store.values[key] = link.url.trim();
         if (link.label) store.labels[key] = link.label;
       }
     for (const document of current.history)
       for (const link of document.data.basics.links)
-        if (link.url && !matchKey(store, 'links', link.url)) alias('link', link.url);
+        if (link.url && !fictitious(document, 'links', link.url) && !matchKey(store, 'links', link.url))
+          alias('link', link.url);
   }
 
   const settings = { enabled: next.enabled, fields: [...next.fields] };

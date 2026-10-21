@@ -249,6 +249,7 @@ export class SqliteRepository implements ResumeRepository {
       target: undefined,
       parentId: undefined,
       purpose: undefined,
+      sample: undefined,
       source: undefined,
     });
     // A change already carried over (the copy now holds the source's value) no longer needs attention.
@@ -471,12 +472,12 @@ export class SqliteRepository implements ResumeRepository {
       });
   }
   /** Privacy mode's rule for anything stored: real private values become tokens, inside the write's transaction. */
-  private seal(document: ResumeDocument): ResumeDocument {
+  private seal(document: ResumeDocument, before?: ResumeDocument): ResumeDocument {
     const settings = this.privacy();
     // With privacy mode off, only a restored revision's leftover tokens need anything done.
     if (!settings.enabled && !JSON.stringify(document).includes('{{private:')) return document;
     const store = this.privateStore();
-    const sealed = sealPrivate(document, settings, store);
+    const sealed = sealPrivate(document, settings, store, before);
     if (JSON.stringify(sealed.store) !== JSON.stringify(store)) {
       this.writeStore(sealed.store);
       // After the write's transaction has committed or rolled back; a spurious call only makes clients re-read.
@@ -585,7 +586,7 @@ export class SqliteRepository implements ResumeRepository {
         .get(id, revision);
       const previous = previousRow ? this.snapshot(id, Number(previousRow.revision))! : undefined;
       const mutated = completeMutation(current, identity.baseRevision, transform, previous);
-      const next = mutated && this.seal(mutated);
+      const next = mutated && this.seal(mutated, current);
       this.insertSnapshot(id, revision + 1, next);
       const update = this.database
         .prepare('UPDATE resumes SET current_revision=?,deleted_at=? WHERE id=? AND current_revision=?')

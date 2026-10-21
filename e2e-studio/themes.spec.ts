@@ -7,6 +7,7 @@ import { startBridge } from '../agent/bridge/server';
 import { WorkspaceRenderer } from '../agent/renderer/renderer';
 import { bridgeRequest } from '../agent/cli/client';
 import { themeCatalog } from '../src/core/document';
+import { cloneSample } from '../src/core/fixtures';
 
 const standard = themeCatalog.find((theme) => theme.id === 'standard')!;
 const ink = (css: string) => ({ manifest: { ...standard, id: 'ink-demo', name: '墨水', version: '0.1.0' }, css });
@@ -52,7 +53,7 @@ test('theme check lays out every sample within its page budget', async () => {
 test('an installed theme is used by inspect and appears in the editor without a reload', async ({ page }) => {
   const { root, bridge, css } = await setup();
   try {
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     const inspect = async (revision: number) =>
       (
         (await (
@@ -102,7 +103,7 @@ test('a resume stylesheet reaches the preview, thumbnails and renderer, and the 
 }) => {
   const { root, bridge } = await setup();
   try {
-    const document = await bridge.service.create();
+    const document = await bridge.service.create({ data: cloneSample() });
     const inspect = async (revision: number) =>
       (
         (await (

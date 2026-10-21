@@ -300,8 +300,8 @@ export function buildBlocks(data: ResumeData): ThemeBlock[] {
   const blocks: ThemeBlock[] = [];
   let sectionNumber = 0;
   for (const section of data.sections.filter((item) => item.visible)) {
-    const firstContentId = section.type === 'summary' ? `${section.id}-text` : section.entries[0]?.id;
-    if (!firstContentId && !section.text?.trim()) continue;
+    // A section with nothing in it prints no heading, an empty summary included.
+    if (!section.text?.trim() && (section.type === 'summary' || !section.entries.length)) continue;
     sectionNumber += 1;
     blocks.push({
       id: `${section.id}-title`,

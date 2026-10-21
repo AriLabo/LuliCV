@@ -34,9 +34,9 @@ function checkPath(path: unknown, write: boolean): void {
     throw new ResumeError('VALIDATION_FAILED', '禁止访问原型');
   // `source` is provenance; only its revision moves, to mark source changes as seen.
   if (parts[0] === 'source' && path === '/source/revision') return;
-  if (!['name', 'data', 'appearance', 'target', 'parentId', 'purpose'].includes(parts[0]))
+  if (!['name', 'data', 'appearance', 'target', 'parentId', 'purpose', 'sample'].includes(parts[0]))
     throw new ResumeError('VALIDATION_FAILED', '禁止修改文档元数据');
-  if ((parts[0] === 'parentId' || parts[0] === 'purpose') && parts.length !== 1)
+  if (['parentId', 'purpose', 'sample'].includes(parts[0]) && parts.length !== 1)
     throw new ResumeError('VALIDATION_FAILED', `非法 ${parts[0]} 路径`);
   if (write && (path === '/data' || path === '/data/sections'))
     throw new ResumeError('VALIDATION_FAILED', '整份内容替换请使用显式导入');
@@ -105,6 +105,7 @@ export function diffDocuments(before: ResumeDocument, after: ResumeDocument): Op
     ...(document.target ? { target: document.target } : {}),
     ...(document.parentId ? { parentId: document.parentId } : {}),
     ...(document.purpose ? { purpose: document.purpose } : {}),
+    ...(document.sample ? { sample: true } : {}),
     ...(document.source ? { source: document.source } : {}),
   });
   return jsonPatch.compare(editable(before), editable(after));

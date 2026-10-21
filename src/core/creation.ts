@@ -44,6 +44,7 @@ export function completeCreation(
     name: source.name ?? `${current.name} 副本`,
     data: structuredClone(current.data),
     appearance: structuredClone(current.appearance),
+    ...(current.sample ? { sample: true } : {}),
     source: { id: current.id, revision: current.revision },
   });
 }

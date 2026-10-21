@@ -1,5 +1,6 @@
 import { validateResumeData, isAppearance } from './validation';
 import { creationIdentity } from './creation';
+import { sampleResumeInput } from './defaults';
 import { normalizeDocument, normalizeImport, validateDocument } from './document';
 import { ResumeError } from './errors';
 import { identity, patchTransform, type ResumePatch, type WriteIdentity } from './mutation';
@@ -23,6 +24,7 @@ export class ResumeService {
       data?: ResumeRecord['data'];
       appearance?: ResumeRecord['appearance'];
       target?: ResumeRecord['target'];
+      sample?: true;
     } = {},
     mutationId?: string,
   ) {
@@ -33,6 +35,7 @@ export class ResumeService {
       data: input.data ?? record.data,
       appearance: input.appearance ?? record.appearance,
       ...(input.target ? { target: input.target } : {}),
+      ...(input.sample ? { sample: true } : {}),
     });
     return this.repository.create(
       document,
@@ -103,14 +106,27 @@ export class ResumeService {
       throw new ResumeError('VALIDATION_FAILED', '导入需要单份 ResumeData v1');
     const value = input as Record<string, unknown>;
     if (
-      Object.keys(value).some((key) => !['mutationId', 'data', 'name', 'appearance'].includes(key)) ||
+      Object.keys(value).some((key) => !['mutationId', 'data', 'name', 'appearance', 'sample'].includes(key)) ||
       typeof value.mutationId !== 'string' ||
       !/^[a-zA-Z0-9_-]{1,128}$/.test(value.mutationId) ||
       (value.name !== undefined && (typeof value.name !== 'string' || value.name.length > 200))
     )
-      throw new ResumeError('VALIDATION_FAILED', '导入只允许 mutationId、data、name、appearance');
+      throw new ResumeError('VALIDATION_FAILED', '导入只允许 mutationId、data、name、appearance、sample');
     if (value.appearance !== undefined && !isAppearance(value.appearance))
       throw new ResumeError('VALIDATION_FAILED', '无效 Appearance');
+    if (value.sample !== undefined) {
+      if (value.sample !== true || value.data !== undefined)
+        throw new ResumeError('VALIDATION_FAILED', '导入内置示例时 sample 为 true，且不带 data');
+      const document = await this.create(
+        {
+          ...sampleResumeInput(),
+          ...(value.name === undefined ? {} : { name: value.name as string }),
+          ...(value.appearance === undefined ? {} : { appearance: value.appearance as ResumeRecord['appearance'] }),
+        },
+        value.mutationId,
+      );
+      return { document, warnings: validateDocument(document).warnings };
+    }
     const errors = validateResumeData(value.data);
     if (errors.length) throw new ResumeError('VALIDATION_FAILED', errors.join('; '));
     const document = await this.create(
@@ -132,10 +148,16 @@ export class ResumeService {
   async replace(id: string, request: WriteIdentity, input: Pick<ResumeRecord, 'data' | 'appearance'>) {
     if (!input || !input.data || !input.appearance)
       throw new ResumeError('VALIDATION_FAILED', '显式导入需要 data 和 appearance');
-    return (await this.repository.transact(id, identity(request, { kind: 'import', input }), (current) => ({
-      ...current,
-      ...structuredClone(input),
-    })))!;
+    // What replaces the content is the person's own, so a resume that was the example is not any more.
+    return (await this.repository.transact(
+      id,
+      identity(request, { kind: 'import', input }),
+      ({ sample: _, ...current }) => ({
+        ...current,
+        data: structuredClone(input.data),
+        appearance: structuredClone(input.appearance),
+      }),
+    ))!;
   }
   async restorePrevious(id: string, request: WriteIdentity) {
     return (await this.repository.transact(id, identity(request, { kind: 'restore' }), (_current, previous) => {

@@ -13,13 +13,15 @@ const scripts = path.resolve('skills/cvslate/scripts');
 import { dataHome } from './workspace-location';
 const { runtimeRoot, removeOlder } = await import(pathToFileURL(path.join(scripts, 'runtime-location.mjs')).href);
 // A minimal npm tarball: a manifest and a cli.mjs that answers doctor, which is all the installer touches.
-async function tarball(root: string, version: string) {
+async function tarball(root: string, version: string, doctorReport?: unknown) {
   const source = path.join(root, `pack-${version}`);
   await mkdir(path.join(source, 'package/agent-dist'), { recursive: true });
   await writeFile(path.join(source, 'package/package.json'), JSON.stringify({ name: '@arilabo/cvslate', version }));
   await writeFile(
     path.join(source, 'package/agent-dist/cli.mjs'),
-    `process.stdout.write(JSON.stringify({ ok: true, version: ${JSON.stringify(version)}, args: process.argv.slice(2) }));`,
+    doctorReport === undefined
+      ? `process.stdout.write(JSON.stringify({ ok: true, version: ${JSON.stringify(version)}, args: process.argv.slice(2) }));`
+      : `process.stdout.write(${JSON.stringify(JSON.stringify(doctorReport))});`,
   );
   const archive = path.join(root, `arilabo-cvslate-${version}.tgz`);
   await execute('tar', ['-czf', archive, '-C', source, 'package']);
@@ -261,6 +263,34 @@ it('installs the Skill version from the npm registry, or from a provided package
       source: 'package',
       doctor: { ok: true },
     });
+    // When every check passes the report only says it is ready; a check that did not pass keeps the full report.
+    const checks = [{ name: 'resources', status: 'ok', message: '完整' }];
+    const installWith = async (name: string, doctorReport: unknown) => {
+      await mkdir(path.join(root, name));
+      const { stdout } = await execute(
+        process.execPath,
+        [
+          path.join(skill, 'install-runtime.mjs'),
+          '--package',
+          await tarball(path.join(root, name), '1.2.0', doctorReport),
+        ],
+        { env: { ...npmEnv, CVSLATE_HOME: path.join(root, `${name}-home`) } },
+      );
+      return JSON.parse(stdout);
+    };
+    expect(await installWith('ready', { valid: true, checks })).toEqual({
+      installed: true,
+      ready: true,
+      version: '1.2.0',
+      source: 'package',
+      removed: [],
+      kept: [],
+      nextAction: expect.stringContaining('nothing to run again'),
+    });
+    const warned = [...checks, { name: 'update', status: 'warning', message: '有新版本' }];
+    const full = await installWith('warned', { valid: true, checks: warned });
+    expect(full).toMatchObject({ doctor: { valid: true, checks: warned }, directory: expect.any(String) });
+    expect(full.ready).toBeUndefined();
     // A version the registry (or a lagging mirror) does not have yet fails with the way forward and leaves nothing behind.
     const home = path.join(root, 'missing-home');
     const failed = execute(process.execPath, [path.join(await skillCopy(root, '1.4.0'), 'install-runtime.mjs')], {

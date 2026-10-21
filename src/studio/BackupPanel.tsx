@@ -5,16 +5,10 @@ import { useStudioStore } from './store';
 import type { Appearance, ResumeData, ResumeRecord } from './types';
 import { isResumeRecord, validateResumeData } from './validation';
 
-// Export, file import and pasted JSON for the active resume, at the foot of the editor.
-export function BackupPanel({ record }: { record: ResumeRecord }) {
-  const workspace = useStudioStore((state) => state.workspace);
-  const mode = useStudioStore((state) => state.mode);
-  const importResumeData = useStudioStore((state) => state.importResumeData);
+/** Picking a CVSlate JSON file and adding every resume in it as a new one: `input` goes in the page, `open` picks. */
+export function useBackupFile() {
   const restore = useStudioStore((state) => state.restore);
   const fileRef = useRef<HTMLInputElement>(null);
-  const [jsonDraft, setJsonDraft] = useState('');
-  const [jsonStatus, setJsonStatus] = useState<{ kind: 'success' | 'error'; message: string }>();
-
   const importFile = async (file?: File) => {
     if (!file) return;
     try {
@@ -24,6 +18,29 @@ export function BackupPanel({ record }: { record: ResumeRecord }) {
       window.alert('JSON 文件读取失败。');
     }
   };
+  const input = (
+    <input
+      ref={fileRef}
+      hidden
+      type="file"
+      accept="application/json,.json"
+      onChange={(event) => {
+        void importFile(event.target.files?.[0]);
+        event.target.value = '';
+      }}
+    />
+  );
+  return { open: () => fileRef.current?.click(), input };
+}
+
+// Export, file import and pasted JSON for the active resume, at the foot of the editor.
+export function BackupPanel({ record }: { record: ResumeRecord }) {
+  const workspace = useStudioStore((state) => state.workspace);
+  const mode = useStudioStore((state) => state.mode);
+  const importResumeData = useStudioStore((state) => state.importResumeData);
+  const backupFile = useBackupFile();
+  const [jsonDraft, setJsonDraft] = useState('');
+  const [jsonStatus, setJsonStatus] = useState<{ kind: 'success' | 'error'; message: string }>();
 
   const parseResumeJson = ():
     { data: ResumeData; appearance?: Appearance; name?: string; complete: boolean } | undefined => {
@@ -92,19 +109,10 @@ export function BackupPanel({ record }: { record: ResumeRecord }) {
           >
             导出全部 JSON
           </button>
-          <button type="button" onClick={() => fileRef.current?.click()}>
+          <button type="button" onClick={backupFile.open}>
             从文件导入（作为新简历）
           </button>
-          <input
-            ref={fileRef}
-            hidden
-            type="file"
-            accept="application/json,.json"
-            onChange={(event) => {
-              void importFile(event.target.files?.[0]);
-              event.target.value = '';
-            }}
-          />
+          {backupFile.input}
         </div>
         <p className="backup-note">
           导入时文件里的每份简历都会加成新简历，不覆盖现有简历；修订记录和母版、投递版之间的关系不会带过来。

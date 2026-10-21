@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createResumeRecord } from './defaults';
+import { sampleRecord } from './fixtures';
 import { normalizeDocument } from './document';
+import { createResumeRecord, sampleResumeInput } from './defaults';
 import {
   defaultPrivacy,
   describePrivate,
@@ -21,7 +22,7 @@ import type { ResumeDocument } from './types';
 const all: PrivacySettings = { enabled: true, fields: ['name', 'phone', 'email', 'photo', 'location', 'links'] };
 const off: PrivacySettings = { enabled: false, fields: all.fields };
 function person(name: string, phone: string, email: string): ResumeDocument {
-  const document = normalizeDocument(createResumeRecord(`${name} · 后端`));
+  const document = normalizeDocument(sampleRecord(`${name} · 后端`));
   Object.assign(document.data.basics, {
     name,
     phone,
@@ -387,5 +388,88 @@ describe('PrivacyView', () => {
         text,
       ).toBe(true);
     expect(patterns.some((pattern) => pattern.test('iVBORw0KGgo'))).toBe(false);
+  });
+});
+
+describe('the built-in example', () => {
+  const saved = normalizeDocument({ ...createResumeRecord(), ...sampleResumeInput() });
+  const example = () => structuredClone(saved);
+  // Lives in 上海 and links example.com, both of which the example's own text also mentions.
+  const mine = person('张三', '13900000000', 'zhangsan@example.org');
+  const exposed = (value: unknown) =>
+    ['张三', '13900000000', 'zhangsan@example.org', 'wx-example-zs'].filter((text) =>
+      JSON.stringify(value).includes(text),
+    );
+  const fictitious = (document: ResumeDocument) =>
+    expect(document.data.basics).toMatchObject({
+      name: '林夏',
+      phone: '13800000000',
+      email: 'linxia@example.com',
+      location: '杭州',
+      links: [{ url: '' }, { url: 'https://example.com/linxia' }],
+    });
+
+  it('keeps its fictitious details out of the store when saved in privacy mode', () => {
+    const empty = sealed(example(), emptyStore());
+    expect(empty.document).toEqual(example());
+    fictitious(empty.document);
+    expect(empty).toMatchObject({ store: emptyStore(), notes: [] });
+    // With the person's own details stored, saving the example is neither refused nor filled with them.
+    const { store } = enable([mine]);
+    const result = sealed(example(), store);
+    expect(result.document).toEqual(example());
+    expect(result.store).toEqual(store);
+    expect(new PrivacyView(all, store).mask(example())).toEqual(example());
+  });
+  it('treats anything else in it as private, so a sample mark alone exempts nothing', () => {
+    const typed = example();
+    typed.data.basics.name = '张三';
+    const result = sealed(typed, emptyStore());
+    expect(result.document.data.basics).toMatchObject({ name: '{{private:name}}', phone: '13800000000' });
+    expect(result.store.values).toEqual({ name: '张三' });
+    // A file that carries the mark but someone's real details.
+    const marked = { ...mine, sample: true as const };
+    expect(exposed(sealed(marked, emptyStore()).document)).toEqual([]);
+    expect(exposed(new PrivacyView(all, enable([mine]).store).mask(marked))).toEqual([]);
+    // Without the mark, the example's details are handled like anyone's.
+    const { sample: _mark, ...unmarked } = example();
+    expect(sealed(unmarked, emptyStore()).store.values).toMatchObject({ name: '林夏', phone: '13800000000' });
+  });
+  it('leaves only the example’s own wording as it is, not the same city typed anywhere else', () => {
+    const { store } = enable([mine]);
+    const typed = example();
+    typed.data.sections[0].text += '现居上海。';
+    const [first, second] = typed.data.sections[1].entries as Array<{ location: string; company: string }>;
+    first.location = '上海';
+    for (const document of [sealed(typed, store).document, new PrivacyView(all, store).mask(typed)]) {
+      const [mineNow, exampleStill] = document.data.sections[1].entries as (typeof first)[];
+      expect(document.data.sections[0].text).toMatch(/现居\{\{private:location\}\}。$/);
+      expect(mineNow.location).toBe('{{private:location}}');
+      expect(exampleStill).toMatchObject({ location: '上海', company: second.company });
+    }
+  });
+  it('gives way to the person’s details once the mark is cleared, and stores none of the example’s', () => {
+    const { sample: _mark, ...cleared } = example();
+    const { store } = enable([mine]);
+    for (const before of [store, emptyStore()]) {
+      const result = sealPrivate(cleared, all, before, example());
+      expect(result.store).toEqual(before);
+      expect(result.document.data.basics).toMatchObject({
+        name: '{{private:name}}',
+        phone: '{{private:phone}}',
+        email: '{{private:email}}',
+        location: '{{private:location}}',
+        links: [{ url: '' }, { url: '' }],
+      });
+    }
+  });
+  it('takes no part when privacy mode is turned on next to the person’s own resume', () => {
+    const plan = enable([mine, example()]);
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.store.values).toMatchObject({ name: '张三', phone: '13900000000', email: 'zhangsan@example.org' });
+    expect(Object.values(plan.store.values)).not.toContain('https://example.com/linxia');
+    expect(plan.store.aliases).toEqual([]);
+    expect(plan.documents).toHaveLength(1);
+    expect(plan.documents[0].data.basics.name).toBe('{{private:name}}');
   });
 });
