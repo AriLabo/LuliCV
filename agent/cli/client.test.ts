@@ -22,9 +22,9 @@ it('reports a missing or stopped Bridge as not running, so writes are not treate
     const address = server.address();
     if (!address || typeof address === 'string') throw new Error('server missing');
     await new Promise<void>((resolve) => server.close(() => resolve()));
-    const { workspaceId } = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+    const { workspaceId } = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
     await writeFile(
-      path.join(root, '.cvslate/runtime.json'),
+      path.join(root, '.lulicv/runtime.json'),
       JSON.stringify({
         pid: process.pid,
         token: 'a'.repeat(64),

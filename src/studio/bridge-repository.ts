@@ -36,7 +36,7 @@ export async function withTimeout<T>(seconds: number, run: (signal: AbortSignal)
     if ((error as Error | undefined)?.name === 'TimeoutError')
       throw new ResumeError(
         'BRIDGE_TIMEOUT',
-        `本地工作区 ${seconds} 秒内没有响应。请刷新页面；仍然不行，请让 agent 运行 cvslate doctor 检查`,
+        `本地工作区 ${seconds} 秒内没有响应。请刷新页面；仍然不行，请让 agent 运行 lulicv doctor 检查`,
       );
     throw error;
   }
@@ -76,7 +76,7 @@ export class BridgeRepository implements ObservableRepository {
           signal,
         }),
       );
-      if (!response.ok) throw new ResumeError('UNAUTHORIZED', '工作区会话无效，请用 cvslate preview 重新打开');
+      if (!response.ok) throw new ResumeError('UNAUTHORIZED', '工作区会话无效，请用 lulicv preview 重新打开');
       history.replaceState(null, '', location.pathname + location.search);
     }
   }

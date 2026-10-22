@@ -5,21 +5,21 @@ import { ResumeError } from '../../src/core/errors';
 import { atomicWrite, initializeWorkspace } from '../bridge/workspace';
 
 /**
- * The per-user directory CVSlate keeps its data in: each OS's application data directory, or
- * CVSLATE_HOME (tests, isolated setups). The Skill's scripts/runtime-location.mjs installs runtimes under
+ * The per-user directory LuliCV keeps its data in: each OS's application data directory, or
+ * LULICV_HOME (tests, isolated setups). The Skill's scripts/runtime-location.mjs installs runtimes under
  * the same directory; a test keeps the two in step.
  */
 export function dataHome(env = process.env, platform = process.platform, home = homedir()) {
-  if (env.CVSLATE_HOME) return path.resolve(env.CVSLATE_HOME);
-  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'CVSlate');
-  if (platform === 'win32') return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'CVSlate');
+  if (env.LULICV_HOME) return path.resolve(env.LULICV_HOME);
+  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'LuliCV');
+  if (platform === 'win32') return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'LuliCV');
   // XDG requires an absolute path and says to ignore a relative one.
   const data =
     env.XDG_DATA_HOME && path.isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : path.join(home, '.local', 'share');
-  return path.join(data, 'cvslate');
+  return path.join(data, 'lulicv');
 }
 
-/** Where a command's workspace is and how it was found: `option` from --workspace, `chosen` by `cvslate workspace <directory>`. */
+/** Where a command's workspace is and how it was found: `option` from --workspace, `chosen` by `lulicv workspace <directory>`. */
 export interface WorkspaceLocation {
   directory: string;
   source: 'option' | 'chosen' | 'default';
@@ -46,14 +46,14 @@ export async function locateWorkspace(option?: string, env = process.env): Promi
   if (typeof settings?.workspace !== 'string' || !path.isAbsolute(settings.workspace))
     throw new ResumeError(
       'STORAGE_FAILED',
-      `${file} 已损坏，读不出选定的工作区；执行 cvslate workspace <directory> 重新选择`,
+      `${file} 已损坏，读不出选定的工作区；执行 lulicv workspace <directory> 重新选择`,
     );
   return { directory: settings.workspace, source: 'chosen' };
 }
 
 export async function isWorkspace(directory: string) {
   try {
-    await readFile(path.join(directory, 'cvslate.json'));
+    await readFile(path.join(directory, 'lulicv.json'));
     return true;
   } catch (error) {
     if (errorCode(error) === 'ENOENT' || errorCode(error) === 'ENOTDIR') return false;
@@ -76,7 +76,7 @@ async function createWorkspace(directory: string) {
   if (entries.some((entry) => !SYSTEM_FILES.has(entry)))
     throw new ResumeError(
       'VALIDATION_FAILED',
-      `${directory} 里已经有别的文件；工作区要放在新的或空的目录里，例如 ${path.join(directory, 'CVSlate')}`,
+      `${directory} 里已经有别的文件；工作区要放在新的或空的目录里，例如 ${path.join(directory, 'LuliCV')}`,
     );
   return await initializeWorkspace(directory);
 }
@@ -89,7 +89,7 @@ export async function openWorkspace(location: WorkspaceLocation) {
   if (location.source === 'chosen')
     throw new ResumeError(
       'NOT_FOUND',
-      `找不到选定的工作区 ${location.directory}：可能被移动了，或者所在的磁盘没有连接。确认后重试；要改用别的位置，执行 cvslate workspace <directory>`,
+      `找不到选定的工作区 ${location.directory}：可能被移动了，或者所在的磁盘没有连接。确认后重试；要改用别的位置，执行 lulicv workspace <directory>`,
     );
   return await createWorkspace(location.directory);
 }

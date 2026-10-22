@@ -38,7 +38,7 @@ export class BrowserRepository implements ObservableRepository {
   private listeners = new Set<(event: CommitEvent) => void>();
   private channel: BroadcastChannel | undefined;
   private readonly db: Promise<IDBDatabase>;
-  constructor(name = 'cvslate') {
+  constructor(name = 'lulicv') {
     this.db = this.open(name);
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(`${name}:commits`);

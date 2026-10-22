@@ -15,7 +15,7 @@ import { errorMessage } from './core/errors';
 
 const root = createRoot(document.getElementById('root')!);
 async function bootstrap() {
-  const workspaceId = document.querySelector<HTMLMetaElement>('meta[name="cvslate-workspace"]')?.content;
+  const workspaceId = document.querySelector<HTMLMetaElement>('meta[name="lulicv-workspace"]')?.content;
   if (workspaceId) {
     const repository = new BridgeRepository();
     await repository.authenticate();

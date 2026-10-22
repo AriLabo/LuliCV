@@ -48,7 +48,7 @@ export function errorResult(error: unknown, category: OperationCategory) {
       nextAction = '检查已有 Bridge；不要启动第二个写者。异常退出后先按恢复文档检查锁';
       break;
     case 'UNAUTHORIZED':
-      nextAction = '执行 cvslate stop 后重试；不手改 token';
+      nextAction = '执行 lulicv stop 后重试；不手改 token';
       break;
     case 'VALIDATION_FAILED':
       nextAction =
@@ -71,15 +71,15 @@ export function errorResult(error: unknown, category: OperationCategory) {
       nextAction = '请求发出前 Bridge 已退出，什么都没写入；直接重试，命令会重新启动 Bridge';
       break;
     case 'RENDER_TIMEOUT':
-      nextAction = '执行 cvslate doctor；缺 Chromium 时执行 cvslate setup，再 inspect 同一 revision';
+      nextAction = '执行 lulicv doctor；缺 Chromium 时执行 lulicv setup，再 inspect 同一 revision';
       break;
     default:
       nextAction =
         category === 'write'
-          ? '执行 cvslate doctor 检查运行环境和 Bridge；写入结果未知时先用 get 或 tree 确认，没写入再用原 mutationId 和完全相同参数重试'
+          ? '执行 lulicv doctor 检查运行环境和 Bridge；写入结果未知时先用 get 或 tree 确认，没写入再用原 mutationId 和完全相同参数重试'
           : category === 'export'
-            ? '执行 cvslate doctor；缺 Chromium 时执行 cvslate setup。检查文件名、输出环境并 inspect 同一 revision 后重试导出'
-            : '执行 cvslate doctor 检查运行环境和 Bridge 后重试读取';
+            ? '执行 lulicv doctor；缺 Chromium 时执行 lulicv setup。检查文件名、输出环境并 inspect 同一 revision 后重试导出'
+            : '执行 lulicv doctor 检查运行环境和 Bridge 后重试读取';
   }
   return {
     code: safe.code,

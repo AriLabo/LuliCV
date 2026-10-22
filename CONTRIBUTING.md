@@ -21,7 +21,7 @@ npm run test:e2e     # 先运行 npm run build：部分用例直接加载 dist/
 
 ## 截图对比
 
-`e2e-studio/cvslate.spec.ts` 里有 12 个页面截图用例，基线图片在 `e2e-studio/cvslate.spec.ts-snapshots/`。目前只有维护者在 macOS 上生成的基线，文件名带 `-darwin`。
+`e2e-studio/lulicv.spec.ts` 里有 12 个页面截图用例，基线图片在 `e2e-studio/lulicv.spec.ts-snapshots/`。目前只有维护者在 macOS 上生成的基线，文件名带 `-darwin`。
 
 在 Linux 或 Windows 上，这些用例会因为找不到本平台的基线而失败。先运行 `npm run snapshots:update` 生成本机基线，之后再跑 `npm run test:e2e` 就能比对你的改动。在其他平台生成的基线暂时不用提交。
 

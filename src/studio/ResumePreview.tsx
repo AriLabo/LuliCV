@@ -121,7 +121,7 @@ export function ResumePreview({
       onReady?.({
         id: record.id,
         revision: (record as ResumeDocument).revision,
-        rendererVersion: 'cvslate/0.1.0',
+        rendererVersion: 'lulicv/0.1.0',
         pageCount: pages.length,
         layoutValid: issues.length === 0,
         issues,

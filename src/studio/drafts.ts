@@ -8,7 +8,7 @@ export class DraftRepository {
   private readonly database: Promise<IDBDatabase>;
   private readonly writes = new Map<string, Promise<void>>();
   constructor(private readonly namespace: string) {
-    const request = indexedDB.open('cvslate-drafts', 1);
+    const request = indexedDB.open('lulicv-drafts', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('drafts');
     this.database = requestValue(request);
   }

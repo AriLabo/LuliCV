@@ -5,7 +5,7 @@ import { useStudioStore } from './store';
 import type { Appearance, ResumeData, ResumeRecord } from './types';
 import { isResumeRecord, validateResumeData } from './validation';
 
-/** Picking a CVSlate JSON file and adding every resume in it as a new one: `input` goes in the page, `open` picks. */
+/** Picking a LuliCV JSON file and adding every resume in it as a new one: `input` goes in the page, `open` picks. */
 export function useBackupFile() {
   const restore = useStudioStore((state) => state.restore);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -13,7 +13,7 @@ export function useBackupFile() {
     if (!file) return;
     try {
       const value = await readJsonFile(file);
-      if (!restore(value)) window.alert('无法识别此 JSON。请选择 CVSlate 导出的简历 JSON。');
+      if (!restore(value)) window.alert('无法识别此 JSON。请选择履栗导出的简历 JSON。');
     } catch {
       window.alert('JSON 文件读取失败。');
     }
@@ -105,7 +105,7 @@ export function BackupPanel({ record }: { record: ResumeRecord }) {
           </button>
           <button
             type="button"
-            onClick={() => downloadJson(workspace, `cvslate-all-${new Date().toISOString().slice(0, 10)}.json`)}
+            onClick={() => downloadJson(workspace, `lulicv-all-${new Date().toISOString().slice(0, 10)}.json`)}
           >
             导出全部 JSON
           </button>
@@ -119,7 +119,7 @@ export function BackupPanel({ record }: { record: ResumeRecord }) {
           {mode === 'workspace' ? (
             <>
               {' '}
-              需要完整备份时，让 Agent 运行 <code>cvslate backup</code>。
+              需要完整备份时，让 Agent 运行 <code>lulicv backup</code>。
             </>
           ) : null}
         </p>

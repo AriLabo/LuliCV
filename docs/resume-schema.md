@@ -1,6 +1,6 @@
 # ResumeData v1 规范
 
-`ResumeData` 是 CVSlate 的唯一内容格式。它只描述“写什么”，不包含 Theme、字体、颜色、密度、页边距或分页结果；同一份数据可以无损切换任何 Theme。
+`ResumeData` 是履栗的唯一内容格式。它只描述“写什么”，不包含 Theme、字体、颜色、密度、页边距或分页结果；同一份数据可以无损切换任何 Theme。
 
 机器可读的 JSON Schema 位于 [`schema/resume-data.schema.json`](../schema/resume-data.schema.json)，代码、CLI 与 MCP 引用同一份。应用内的“校验 JSON”检查同一组核心字段，并额外检查重复 ID，错误会带具体字段路径。
 

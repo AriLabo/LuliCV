@@ -3,16 +3,16 @@ import { readFile, readdir, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-// Each OS's per-user application data directory; CVSLATE_HOME moves everything elsewhere (tests, isolated setups).
+// Each OS's per-user application data directory; LULICV_HOME moves everything elsewhere (tests, isolated setups).
 export function runtimeRoot(env = process.env, platform = process.platform, home = homedir()) {
-  if (env.CVSLATE_HOME) return path.join(path.resolve(env.CVSLATE_HOME), 'runtime');
-  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'CVSlate', 'runtime');
+  if (env.LULICV_HOME) return path.join(path.resolve(env.LULICV_HOME), 'runtime');
+  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'LuliCV', 'runtime');
   if (platform === 'win32')
-    return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'CVSlate', 'runtime');
+    return path.join(env.LOCALAPPDATA || path.join(home, 'AppData', 'Local'), 'LuliCV', 'runtime');
   // XDG requires an absolute path and says to ignore a relative one.
   const data =
     env.XDG_DATA_HOME && path.isAbsolute(env.XDG_DATA_HOME) ? env.XDG_DATA_HOME : path.join(home, '.local', 'share');
-  return path.join(data, 'cvslate', 'runtime');
+  return path.join(data, 'lulicv', 'runtime');
 }
 
 // Committed beside this file and bumped with package.json (agent/runtime/installer.test.ts checks they agree), so a

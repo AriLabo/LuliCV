@@ -33,7 +33,7 @@ export async function writeThirdPartyNotices(files, out) {
     .join('\n\n');
   await writeFile(
     out,
-    `# Third-party notices\n\nCVSlate bundles the following npm packages into \`agent-dist/\` and \`dist/\`. Fonts are listed in THIRD_PARTY_FONTS.md.\n\n${body}\n`,
+    `# Third-party notices\n\nLuliCV bundles the following npm packages into \`agent-dist/\` and \`dist/\`. Fonts are listed in THIRD_PARTY_FONTS.md.\n\n${body}\n`,
   );
   return sorted.length;
 }

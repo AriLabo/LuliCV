@@ -40,7 +40,7 @@ async function readPackage(directory: string): Promise<{ manifest: unknown; css:
   return { manifest, css: css ?? '', errors };
 }
 
-/** Starts a theme folder from a built-in theme; nothing is installed until `cvslate theme install`. */
+/** Starts a theme folder from a built-in theme; nothing is installed until `lulicv theme install`. */
 export async function newTheme(id: string | undefined, values: { from?: string; name?: string; output?: string }) {
   if (!id || !THEME_ID.test(id))
     throw new ResumeError('VALIDATION_FAILED', '需要主题 id：2–40 位小写字母、数字或连字符，并以字母开头');
@@ -81,7 +81,7 @@ export async function newTheme(id: string | undefined, values: { from?: string; 
     from,
     directory,
     files: ['manifest.json', 'theme.css'],
-    next: [`cvslate theme check ${directory} --images <目录>`, `cvslate theme install ${directory}`],
+    next: [`lulicv theme check ${directory} --images <目录>`, `lulicv theme install ${directory}`],
   };
 }
 
@@ -100,7 +100,7 @@ export async function checkTheme(
   directory: string | undefined,
   values: { images?: string },
 ) {
-  if (!directory) throw new ResumeError('VALIDATION_FAILED', '需要主题目录：cvslate theme check <dir>');
+  if (!directory) throw new ResumeError('VALIDATION_FAILED', '需要主题目录：lulicv theme check <dir>');
   const read = await readPackage(path.resolve(directory));
   const checked = read.errors.length
     ? { errors: read.errors, warnings: [] }
@@ -158,7 +158,7 @@ export async function checkTheme(
 }
 
 export async function installTheme(runtime: Runtime, directory: string | undefined) {
-  if (!directory) throw new ResumeError('VALIDATION_FAILED', '需要主题目录：cvslate theme install <dir>');
+  if (!directory) throw new ResumeError('VALIDATION_FAILED', '需要主题目录：lulicv theme install <dir>');
   const read = await readPackage(path.resolve(directory));
   if (read.errors.length) throw new ResumeError('VALIDATION_FAILED', read.errors.join('\n'));
   const result = (await (
@@ -189,7 +189,7 @@ export async function removeTheme(runtime: Runtime, id: string | undefined) {
 
 /** Switches a resume to a theme the way the editor does: the theme's first colour preset and font, the person's spacing kept. */
 export async function applyTheme(runtime: Runtime, resumeId: string | undefined, themeId: string | undefined) {
-  if (!resumeId || !themeId) throw new ResumeError('VALIDATION_FAILED', '用法：cvslate theme use <简历 id> <主题 id>');
+  if (!resumeId || !themeId) throw new ResumeError('VALIDATION_FAILED', '用法：lulicv theme use <简历 id> <主题 id>');
   const { themes } = (await (await bridgeRequest(runtime, '/api/themes')).json()) as { themes: ThemeManifest[] };
   const manifest = themes.find((theme) => theme.id === themeId);
   if (!manifest)

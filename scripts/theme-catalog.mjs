@@ -27,7 +27,7 @@ export async function discoverThemes(directory) {
       if (error.code === 'ENOENT') continue;
       throw error;
     }
-    // A theme package is manifest.json + theme.css; the full manifest rules are checked by the unit tests and `cvslate theme check`.
+    // A theme package is manifest.json + theme.css; the full manifest rules are checked by the unit tests and `lulicv theme check`.
     try {
       await access(path.join(folder, 'theme.css'));
     } catch (error) {

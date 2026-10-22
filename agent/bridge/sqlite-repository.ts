@@ -87,7 +87,7 @@ export class SqliteRepository implements ResumeRepository {
   static async open(directory: string) {
     checkRuntime();
     const root = await realpath(directory);
-    const manifest = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+    const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
     if (
       manifest.workspaceVersion !== 1 ||
       typeof manifest.workspaceId !== 'string' ||
@@ -95,17 +95,17 @@ export class SqliteRepository implements ResumeRepository {
     ) {
       throw new ResumeError('VALIDATION_FAILED', '工作区 manifest 无效');
     }
-    for (const relative of ['.cvslate', 'assets']) {
+    for (const relative of ['.lulicv', 'assets']) {
       if ((await lstat(path.join(root, relative))).isSymbolicLink())
         throw new ResumeError('VALIDATION_FAILED', '禁止符号链接目录');
     }
     try {
-      await lstat(path.join(root, '.cvslate/restore-pending.json'));
+      await lstat(path.join(root, '.lulicv/restore-pending.json'));
       throw new ResumeError('STORAGE_FAILED', '工作区恢复未完成，请重新运行 restore-workspace');
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    const file = path.join(root, 'cvslate.db');
+    const file = path.join(root, 'lulicv.db');
     for (const suffix of ['', '-wal', '-shm']) {
       try {
         if ((await lstat(file + suffix)).isSymbolicLink())
@@ -114,12 +114,12 @@ export class SqliteRepository implements ResumeRepository {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }
     }
-    const lock = path.join(root, '.cvslate/lock');
+    const lock = path.join(root, '.lulicv/lock');
     try {
       await mkdir(lock);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'EEXIST')
-        throw new ResumeError('WORKSPACE_LOCKED', '工作区已有 Bridge；异常退出后使用 cvslate unlock');
+        throw new ResumeError('WORKSPACE_LOCKED', '工作区已有 Bridge；异常退出后使用 lulicv unlock');
       throw error;
     }
     let database: DatabaseSync | undefined;
@@ -132,7 +132,7 @@ export class SqliteRepository implements ResumeRepository {
       checkSqlite(String(database.prepare('SELECT sqlite_version() AS version').get()!.version));
       database.exec('PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;');
       const schema = Number(database.prepare('PRAGMA user_version').get()!.user_version);
-      if (schema > SCHEMA_VERSION) throw new ResumeError('STORAGE_FAILED', '数据库版本较新，请升级 CVSlate');
+      if (schema > SCHEMA_VERSION) throw new ResumeError('STORAGE_FAILED', '数据库版本较新，请升级履栗');
       if (schema === 0) {
         database.exec(`BEGIN IMMEDIATE;
           CREATE TABLE workspace_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -638,8 +638,8 @@ export class SqliteRepository implements ResumeRepository {
     this.closeTask = (async () => {
       await Promise.allSettled([...this.backups]);
       this.database.close();
-      await rm(path.join(this.root, '.cvslate/runtime.json'), { force: true });
-      await rm(path.join(this.root, '.cvslate/lock'), { recursive: true, force: true });
+      await rm(path.join(this.root, '.lulicv/runtime.json'), { force: true });
+      await rm(path.join(this.root, '.lulicv/lock'), { recursive: true, force: true });
     })();
     return this.closeTask;
   }

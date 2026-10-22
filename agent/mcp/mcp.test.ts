@@ -11,7 +11,7 @@ import { runtimeAt } from '../cli/client';
 import { cloneSample } from '../../src/core/fixtures';
 
 it('real stdio clients share one writer, deduplicate across restarts and return conflicts safely', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'cvslate-mcp-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'lulicv-mcp-'));
   await initializeWorkspace(root);
   const dist = path.join(root, 'web');
   await mkdir(dist);
@@ -148,7 +148,7 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
 it('rejects untrusted runtime destinations before issuing HTTP requests', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-runtime-'));
   await initializeWorkspace(root);
-  const manifest = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
   try {
     const runtime = {
       pid: 123,
@@ -166,7 +166,7 @@ it('rejects untrusted runtime destinations before issuing HTTP requests', async 
       { pid: 0 },
       { token: [runtime.token] },
     ]) {
-      await writeFile(path.join(root, '.cvslate/runtime.json'), JSON.stringify({ ...runtime, ...changed }));
+      await writeFile(path.join(root, '.lulicv/runtime.json'), JSON.stringify({ ...runtime, ...changed }));
       await expect(runtimeAt(root)).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
     }
   } finally {
@@ -178,7 +178,7 @@ it('checks health identity without following untrusted redirects', async () => {
   const { createServer } = await import('node:http');
   const root = await mkdtemp(path.join(tmpdir(), 'resume-health-'));
   await initializeWorkspace(root);
-  const manifest = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
   let health = { workspaceId: manifest.workspaceId as string, pid: process.pid };
   let redirect = false;
   const server = createServer((_request, response) => {
@@ -195,7 +195,7 @@ it('checks health identity without following untrusted redirects', async () => {
   if (!address || typeof address === 'string') throw new Error('No port');
   try {
     await writeFile(
-      path.join(root, '.cvslate/runtime.json'),
+      path.join(root, '.lulicv/runtime.json'),
       JSON.stringify({
         origin: `http://127.0.0.1:${address.port}`,
         token: 'a'.repeat(64),

@@ -8,7 +8,7 @@ let root: string;
 let env: NodeJS.ProcessEnv;
 beforeEach(async () => {
   root = await realpath(await mkdtemp(path.join(tmpdir(), 'resume-location-')));
-  env = { CVSLATE_HOME: path.join(root, 'home') };
+  env = { LULICV_HOME: path.join(root, 'home') };
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
@@ -34,7 +34,7 @@ it('creates a workspace only in a new or empty directory, ignoring the files an 
   await writeFile(path.join(used, 'notes.txt'), 'fictitious');
   await expect(chooseWorkspace(used, env)).rejects.toMatchObject({
     code: 'VALIDATION_FAILED',
-    message: expect.stringContaining(path.join(used, 'CVSlate')),
+    message: expect.stringContaining(path.join(used, 'LuliCV')),
   });
   await expect(chooseWorkspace(path.join(used, 'notes.txt'), env)).rejects.toMatchObject({
     code: 'VALIDATION_FAILED',
@@ -55,13 +55,13 @@ it('remembers the chosen workspace, accepts an existing one and reports one that
   await rename(chosen, moved);
   await expect(openWorkspace(await locateWorkspace(undefined, env))).rejects.toMatchObject({
     code: 'NOT_FOUND',
-    message: expect.stringContaining('cvslate workspace <directory>'),
+    message: expect.stringContaining('lulicv workspace <directory>'),
   });
   await expect(isWorkspace(chosen)).resolves.toBe(false);
-  const manifest = await readFile(path.join(moved, 'cvslate.json'), 'utf8');
+  const manifest = await readFile(path.join(moved, 'lulicv.json'), 'utf8');
   expect(await chooseWorkspace(moved, env)).toBe(moved);
   expect(await openWorkspace(await locateWorkspace(undefined, env))).toBe(moved);
-  expect(await readFile(path.join(moved, 'cvslate.json'), 'utf8')).toBe(manifest);
+  expect(await readFile(path.join(moved, 'lulicv.json'), 'utf8')).toBe(manifest);
 });
 
 it('asks for a new choice when the settings file is damaged', async () => {
@@ -70,7 +70,7 @@ it('asks for a new choice when the settings file is damaged', async () => {
     await writeFile(path.join(root, 'home', 'settings.json'), content);
     await expect(locateWorkspace(undefined, env)).rejects.toMatchObject({
       code: 'STORAGE_FAILED',
-      message: expect.stringContaining('cvslate workspace <directory>'),
+      message: expect.stringContaining('lulicv workspace <directory>'),
     });
   }
 });

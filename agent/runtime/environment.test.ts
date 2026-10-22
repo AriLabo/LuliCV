@@ -68,7 +68,7 @@ it('doctor fails missing linked font assets without creating workspace or exposi
       expect.objectContaining({
         name: 'workspace',
         status: 'error',
-        nextAction: expect.stringContaining('cvslate workspace <directory>'),
+        nextAction: expect.stringContaining('lulicv workspace <directory>'),
       }),
     );
   } finally {
@@ -92,7 +92,7 @@ it('setup uses the installed Playwright and maps child failure, keeping installe
       ),
     ).rejects.toMatchObject({
       code: 'STORAGE_FAILED',
-      message: expect.stringMatching(/cvslate setup.*PLAYWRIGHT_DOWNLOAD_HOST=https:\/\/cdn\.npmmirror\.com/),
+      message: expect.stringMatching(/lulicv setup.*PLAYWRIGHT_DOWNLOAD_HOST=https:\/\/cdn\.npmmirror\.com/),
     });
     expect(stderr).toHaveBeenCalledWith(expect.any(Buffer));
     await expect(
@@ -165,7 +165,7 @@ it('offers an update only for a newer version on the channel the user is on', as
   });
   expect(updateCheck('0.1.0-preview.5', { latest: '0.1.0', next: '0.1.0-preview.6' })).toMatchObject({
     status: 'warning',
-    message: expect.stringContaining('CVSlate 0.1.0 '),
+    message: expect.stringContaining('履栗 0.1.0 '),
   });
   // A release is not offered a preview, and nothing older or equal counts.
   expect(updateCheck('0.1.0', { latest: '0.1.0', next: '0.2.0-preview.1' })).toMatchObject({

@@ -11,7 +11,7 @@ it('recognises and clears a lock left by a Bridge that exited, never one whose o
   await initializeWorkspace(root);
   try {
     expect(await lockOwner(root)).toBeUndefined();
-    const lock = path.join(root, '.cvslate/lock');
+    const lock = path.join(root, '.lulicv/lock');
     await mkdir(lock);
     // A live owner (this test process) is left alone.
     await writeFile(path.join(lock, 'owner.json'), JSON.stringify({ pid: process.pid }));
@@ -20,14 +20,14 @@ it('recognises and clears a lock left by a Bridge that exited, never one whose o
     // A pid that cannot exist stands in for a Bridge that has exited.
     const dead = 2 ** 22 + 12345;
     await writeFile(path.join(lock, 'owner.json'), JSON.stringify({ pid: dead }));
-    await writeFile(path.join(root, '.cvslate/runtime.json'), JSON.stringify({ pid: dead }));
+    await writeFile(path.join(root, '.lulicv/runtime.json'), JSON.stringify({ pid: dead }));
     const report = await doctor({ directory: root, source: 'option' });
     expect(report.checks).toContainEqual(
       expect.objectContaining({ name: 'lock', status: 'warning', message: expect.stringContaining(String(dead)) }),
     );
     expect(await clearStaleLock(root)).toBe(dead);
     expect(await lockOwner(root)).toBeUndefined();
-    await expect(readFile(path.join(root, '.cvslate/runtime.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(readFile(path.join(root, '.lulicv/runtime.json'))).rejects.toMatchObject({ code: 'ENOENT' });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

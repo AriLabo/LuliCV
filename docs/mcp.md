@@ -1,23 +1,23 @@
 # 本地 stdio MCP
 
-多数 Agent 都能执行命令，推荐优先使用 CLI（见 [Skill](../skills/cvslate/SKILL.md)）；MCP 仅在客户端不能执行命令时使用。适配器只通过 HTTP 连接 Bridge。
+多数 Agent 都能执行命令，推荐优先使用 CLI（见 [Skill](../skills/lulicv/SKILL.md)）；MCP 仅在客户端不能执行命令时使用。适配器只通过 HTTP 连接 Bridge。
 
-MCP 是 Bridge 的客户端，不打开 SQLite，也不停止 Bridge；Bridge 没运行时，它像 CLI 一样在后台启动一个。运行时按 Skill 的[安装说明](../skills/cvslate/references/install.md)安装。
+MCP 是 Bridge 的客户端，不打开 SQLite，也不停止 Bridge；Bridge 没运行时，它像 CLI 一样在后台启动一个。运行时按 Skill 的[安装说明](../skills/lulicv/references/install.md)安装。
 
-标准本地 stdio 配置示例，和 Skill 的 [MCP 配置说明](../skills/cvslate/references/mcp-client.md)一致；客户端具体入口和外层字段可能不同，路径要写绝对路径：
+标准本地 stdio 配置示例，和 Skill 的 [MCP 配置说明](../skills/lulicv/references/mcp-client.md)一致；客户端具体入口和外层字段可能不同，路径要写绝对路径：
 
 ```json
 {
   "mcpServers": {
-    "cvslate": {
+    "lulicv": {
       "command": "node",
-      "args": ["<Skill 目录的绝对路径>/scripts/cvslate.mjs", "mcp"]
+      "args": ["<Skill 目录的绝对路径>/scripts/lulicv.mjs", "mcp"]
     }
   }
 }
 ```
 
-`scripts/cvslate.mjs` 在 Node 18 或更新版本上都能运行，它再用安装运行时时选定的 Node（22.22.3 或更新）启动 MCP 服务，和 CLI 走同一条路。用 `npm install -g` 直接装了运行时包的开发环境，也可以把 `command` 写成 `cvslate-mcp`。
+`scripts/lulicv.mjs` 在 Node 18 或更新版本上都能运行，它再用安装运行时时选定的 Node（22.22.3 或更新）启动 MCP 服务，和 CLI 走同一条路。用 `npm install -g` 直接装了运行时包的开发环境，也可以把 `command` 写成 `lulicv-mcp`。
 
 目前的实测都走 CLI，还没有在真实客户端里完整走过 MCP。GUI 应用的 PATH 和 Windows 的 `.cmd` 启动器都要在客户端里实测；不要把协议级 SDK 测试当作实机兼容证据。
 
@@ -38,7 +38,7 @@ MCP 是 Bridge 的客户端，不打开 SQLite，也不停止 Bridge；Bridge �
 | inspect_resume_layout | id, revision, maxPages? | 使用真实 DOM 检查并保留固定快照 |
 | export_resume_pdf | id, revision, filename?, requestId? | 写入工作区 exports/；只接受 .pdf 文件名，不覆盖已有文件，不跟随 exports 符号链接。隐私模式下不写文件，见下文 |
 
-成功返回 JSON 文本及 structuredContent。业务错误返回 isError=true，JSON 包含 code、message、针对操作的 nextAction，冲突含 currentRevision。参数错误由 SDK 拒绝。写入（import_resume、duplicate_resume、patch_resume）的结果带 `editor`：用户开着编辑器时为 `{"open": true}`，否则带一个新的一次性 `url` 和 `nextAction`。Bridge 启动失败时返回错误，message 带 `.cvslate/bridge.log` 的最后一行。
+成功返回 JSON 文本及 structuredContent。业务错误返回 isError=true，JSON 包含 code、message、针对操作的 nextAction，冲突含 currentRevision。参数错误由 SDK 拒绝。写入（import_resume、duplicate_resume、patch_resume）的结果带 `editor`：用户开着编辑器时为 `{"open": true}`，否则带一个新的一次性 `url` 和 `nextAction`。Bridge 启动失败时返回错误，message 带 `.lulicv/bridge.log` 的最后一行。
 
 复制岗位版本前先 get，并将读到的 revision 作为 sourceRevision。复制和 patch 的 mutationId 由调用者生成，重试必须保留完全相同的参数。响应丢失时重复调用会返回首次提交结果；参数变化必须使用新 ID。冲突时重新 get、理解人工修改并重新计算 patch，不能仅更换 baseRevision 重放旧数组路径。
 

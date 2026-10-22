@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-// `import css from './theme.css?raw'` as in Vite: the CLI ships the built-in theme stylesheets for `cvslate theme new`.
+// `import css from './theme.css?raw'` as in Vite: the CLI ships the built-in theme stylesheets for `lulicv theme new`.
 export const rawPlugin = {
   name: 'raw',
   setup(build) {

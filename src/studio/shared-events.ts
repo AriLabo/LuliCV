@@ -5,7 +5,7 @@ export interface EventStream {
   close(): void;
 }
 const NAMES = ['connected', 'commit', 'themes', 'privacy', 'export-request'];
-const SHARED = 'cvslate-events';
+const SHARED = 'lulicv-events';
 type Message = { name: string; data?: string; to?: string } | { hello: string };
 
 /** One EventSource to `/api/events` owned by this tab. */

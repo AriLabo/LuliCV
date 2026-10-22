@@ -133,7 +133,7 @@ export class ThemeStore {
     }
     await rename(
       current,
-      path.join(this.root, '.cvslate/trash', `theme-${id}-${Date.now()}-${randomUUID().slice(0, 8)}`),
+      path.join(this.root, '.lulicv/trash', `theme-${id}-${Date.now()}-${randomUUID().slice(0, 8)}`),
     );
     await syncDirectory(path.join(this.root, 'themes'));
     this.themes.delete(id);

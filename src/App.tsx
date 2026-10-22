@@ -27,8 +27,8 @@ import { usePreviewZoom } from './studio/preview-zoom';
 const densityNames = { comfortable: '舒适', balanced: '适中', dense: '紧凑' } as const;
 const SPARSE_LAST_PAGE = 0.3;
 const NARROW_QUERY = '(max-width: 1099px)';
-const EDIT_HINT_KEY = 'cvslate:edit-hint-seen';
-const TREE_KEY = 'cvslate:tree-open';
+const EDIT_HINT_KEY = 'lulicv:edit-hint-seen';
+const TREE_KEY = 'lulicv:tree-open';
 const readSetting = (key: string) => {
   try {
     return localStorage.getItem(key);
@@ -458,7 +458,7 @@ function App() {
   return (
     <div className="app-shell" data-view={view}>
       <header className="topbar studio-chrome">
-        <div className="brand" role="img" aria-label="CVSlate">
+        <div className="brand" role="img" aria-label="LuliCV">
           <Wordmark accent={(shownRecord ?? record).appearance.layout.accentColor} />
         </div>
         {narrow ? (

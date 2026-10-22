@@ -34,7 +34,7 @@ import type {
   SkillEntry,
 } from './types';
 
-const PRIVACY_NOTE_KEY = 'cvslate:privacy-note-dismissed';
+const PRIVACY_NOTE_KEY = 'lulicv:privacy-note-dismissed';
 
 function Field({
   label,

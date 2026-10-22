@@ -87,19 +87,19 @@ test('active WAL backup restores committed data and newer schemas are rejected',
   } finally {
     await repository.close();
   }
-  await copyFile(output, path.join(root, 'cvslate.db'));
+  await copyFile(output, path.join(root, 'lulicv.db'));
   const reopened = await SqliteRepository.open(root);
   expect((await reopened.get(document.id)).name).toBe('已保存');
   await reopened.close();
-  const database = new DatabaseSync(path.join(root, 'cvslate.db'));
+  const database = new DatabaseSync(path.join(root, 'lulicv.db'));
   database.exec('PRAGMA user_version=99');
   database.close();
   await expect(SqliteRepository.open(root)).rejects.toThrow('数据库版本较新');
-  expect(JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8')).workspaceVersion).toBe(1);
+  expect(JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8')).workspaceVersion).toBe(1);
 });
 test('failure after snapshot insertion rolls back head, history and receipt and emits no event', async () => {
   const { root, repository, service, document } = await setup();
-  const observer = new DatabaseSync(path.join(root, 'cvslate.db'));
+  const observer = new DatabaseSync(path.join(root, 'lulicv.db'));
   const events: unknown[] = [];
   repository.subscribe((event) => events.push(event));
   try {
@@ -120,7 +120,7 @@ test('failure after snapshot insertion rolls back head, history and receipt and 
 });
 test('creation receipts are atomic, durable, and replay before consulting a deleted source', async () => {
   const { root, repository, service } = await setup();
-  const observer = new DatabaseSync(path.join(root, 'cvslate.db'));
+  const observer = new DatabaseSync(path.join(root, 'lulicv.db'));
   let createdId: string;
   let copiedId: string;
   try {

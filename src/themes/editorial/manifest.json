@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "engine": 1,
   "skeleton": "single",
-  "author": "CVSlate",
+  "author": "LuliCV",
   "license": "MIT",
   "tags": ["设计感", "编辑", "社招"],
   "traits": { "photo": true, "atsFriendly": true },

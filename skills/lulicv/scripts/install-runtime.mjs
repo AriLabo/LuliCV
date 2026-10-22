@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// Bootstrap with the Agent's existing Node 18+. Installs CVSlate of this Skill's version (and any downloaded Node) into this
-// device's per-user data directory, one directory per version, where the Skill's scripts/cvslate.mjs finds it. The package comes
+// Bootstrap with the Agent's existing Node 18+. Installs LuliCV of this Skill's version (and any downloaded Node) into this
+// device's per-user data directory, one directory per version, where the Skill's scripts/lulicv.mjs finds it. The package comes
 // from the user's npm registry, or from a .tgz given with --package (pre-release builds, offline machines).
 import { access, mkdir, mkdtemp, readFile, writeFile, rm, rename } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
@@ -11,7 +11,7 @@ import { parseArgs } from 'node:util';
 import path from 'node:path';
 import { readInstall, removeOlder, runtimeRoot, skillVersion } from './runtime-location.mjs';
 const VERSION = '22.22.3';
-const PACKAGE = '@arilabo/cvslate';
+const PACKAGE = '@arilabo/lulicv';
 // Pinned here rather than read from SHASUMS256.txt, so a download through --node-mirror is held to the same bytes as nodejs.org.
 const SHA256 = {
   'node-v22.22.3-darwin-arm64.tar.gz': '0da7ff74ef8611328c8212f17943368713a2ad953fb7d89a8c8a0eae87c23207',
@@ -101,7 +101,7 @@ async function packageVersion(archive) {
   try {
     tar = gunzipSync(await readFile(archive));
   } catch {
-    throw new Error('Use the provided CVSlate .tgz');
+    throw new Error('Use the provided LuliCV .tgz');
   }
   for (let offset = 0; offset + 512 <= tar.length;) {
     const field = (start, length) =>
@@ -120,7 +120,7 @@ async function packageVersion(archive) {
     }
     offset += Math.ceil(size / 512) * 512;
   }
-  throw new Error('Use the provided CVSlate .tgz');
+  throw new Error('Use the provided LuliCV .tgz');
 }
 async function main() {
   const { values } = parseArgs({
@@ -138,17 +138,17 @@ async function main() {
   let archive;
   if (values.package) {
     archive = path.resolve(values.package);
-    if (!archive.endsWith('.tgz')) throw new Error('Use the provided CVSlate .tgz');
+    if (!archive.endsWith('.tgz')) throw new Error('Use the provided LuliCV .tgz');
     await access(archive);
     const found = await packageVersion(archive);
     if (found !== version)
       throw new Error(
-        `This package is CVSlate ${found} but this Skill is ${version}. To stay on ${version}, install arilabo-cvslate-${version}.tgz or run without --package to install from npm. To use ${found}, install the Skill of ${found} (cvslate-skill-${found}.zip, released with the package) and run its installer; editing scripts/release.json instead leaves this Skill's instructions driving a runtime they were not written for. Nothing was installed.`,
+        `This package is LuliCV ${found} but this Skill is ${version}. To stay on ${version}, install arilabo-lulicv-${version}.tgz or run without --package to install from npm. To use ${found}, install the Skill of ${found} (lulicv-skill-${found}.zip, released with the package) and run its installer; editing scripts/release.json instead leaves this Skill's instructions driving a runtime they were not written for. Nothing was installed.`,
       );
   }
   const root = runtimeRoot();
   const destination = path.join(root, version);
-  const entry = fileURLToPath(new URL('./cvslate.mjs', import.meta.url));
+  const entry = fileURLToPath(new URL('./lulicv.mjs', import.meta.url));
   const report = async (install, extra) => {
     const checked = await doctor(entry);
     // When every check passed the agent only needs to know it is ready; paths and checks it would only repeat to the user.
@@ -161,7 +161,7 @@ async function main() {
           source: install.source,
           ...extra,
           nextAction:
-            'doctor already ran as part of this install and passed every check, so there is nothing to run again before starting. Tell the user CVSlate is ready as the last step of references/install.md says.',
+            'doctor already ran as part of this install and passed every check, so there is nothing to run again before starting. Tell the user LuliCV is ready as the last step of references/install.md says.',
         }) + '\n',
       );
       return;
@@ -177,8 +177,8 @@ async function main() {
         ...extra,
         ...(checked ? { doctor: checked } : {}),
         nextAction: checked
-          ? 'Run setup only if the doctor above reports no browser, then doctor again. Then tell the user CVSlate is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.'
-          : 'Run doctor through the invocation; run setup only if it reports no browser. Then tell the user CVSlate is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.',
+          ? 'Run setup only if the doctor above reports no browser, then doctor again. Then tell the user LuliCV is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.'
+          : 'Run doctor through the invocation; run setup only if it reports no browser. Then tell the user LuliCV is ready as the last step of references/install.md says; this report is for you: leave its paths, versions and checks out of the reply unless a check failed.',
       }) + '\n',
     );
   };
@@ -264,7 +264,7 @@ async function main() {
       throw archive
         ? error
         : new Error(
-            `${error.message}. npm could not install ${spec}: a registry mirror can lag a new release by some minutes, so retry later; with a provided arilabo-cvslate-${version}.tgz, pass --package <path> instead`,
+            `${error.message}. npm could not install ${spec}: a registry mirror can lag a new release by some minutes, so retry later; with a provided arilabo-lulicv-${version}.tgz, pass --package <path> instead`,
           );
     }
     const installed = JSON.parse(await readFile(path.join(stage, 'app/node_modules', PACKAGE, 'package.json'), 'utf8'));

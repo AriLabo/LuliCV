@@ -411,7 +411,7 @@ it('exports for an agent only after the person approves the requested revision, 
     // The request waits for the person; asking again joins it, and nothing else can be asked meanwhile.
     const first = await request(id, revision);
     expect(first).toMatchObject({ status: 'pending', id, revision, pages: 1, webOpen: false });
-    expect(first.message).toContain('没有打开的 CVSlate 网页');
+    expect(first.message).toContain('没有打开的履栗网页');
     expect((await request(id, revision)).requestId).toBe(first.requestId);
     const other = (await agent('/api/resumes', 'POST', { name: '备用', data: cloneSample() })) as ResumeDocument;
     expect(await refused(`/api/resumes/${other.id}/export`, 'POST', { revision: 1 })).toBe('EXPORT_PENDING');

@@ -25,12 +25,12 @@ export async function atomicWrite(file: string, value: unknown): Promise<void> {
 export async function initializeWorkspace(directory: string) {
   await mkdir(directory, { recursive: true });
   const root = await realpath(directory);
-  for (const name of ['assets', '.cvslate', '.cvslate/trash']) {
+  for (const name of ['assets', '.lulicv', '.lulicv/trash']) {
     const target = path.join(root, name);
     await mkdir(target, { recursive: true });
     if ((await lstat(target)).isSymbolicLink()) throw new ResumeError('VALIDATION_FAILED', '工作区目录不能是符号链接');
   }
-  const manifest = path.join(root, 'cvslate.json');
+  const manifest = path.join(root, 'lulicv.json');
   try {
     const existing = JSON.parse(await readFile(manifest, 'utf8'));
     if (existing.workspaceVersion !== 1) throw new ResumeError('VALIDATION_FAILED', '未知工作区版本');
@@ -51,7 +51,7 @@ export async function lockOwner(directory: string): Promise<{ pid: number; alive
   const root = await realpath(directory);
   let owner: { pid?: unknown };
   try {
-    owner = JSON.parse(await readFile(path.join(root, '.cvslate/lock/owner.json'), 'utf8'));
+    owner = JSON.parse(await readFile(path.join(root, '.lulicv/lock/owner.json'), 'utf8'));
   } catch (error) {
     if (isMissing(error)) return undefined;
     throw error;
@@ -74,17 +74,17 @@ export async function clearStaleLock(directory: string): Promise<number | undefi
   if (!owner || owner.alive) return undefined;
   const root = await realpath(directory);
   try {
-    const runtime = JSON.parse(await readFile(path.join(root, '.cvslate/runtime.json'), 'utf8'));
-    if (runtime.pid === owner.pid) await rm(path.join(root, '.cvslate/runtime.json'), { force: true });
+    const runtime = JSON.parse(await readFile(path.join(root, '.lulicv/runtime.json'), 'utf8'));
+    if (runtime.pid === owner.pid) await rm(path.join(root, '.lulicv/runtime.json'), { force: true });
   } catch (error) {
     if (!isMissing(error) && !(error instanceof SyntaxError)) throw error;
   }
-  await rm(path.join(root, '.cvslate/lock'), { recursive: true, force: true });
+  await rm(path.join(root, '.lulicv/lock'), { recursive: true, force: true });
   return owner.pid;
 }
 export async function unlockWorkspace(directory: string) {
   const root = await realpath(directory);
-  const lock = path.join(root, '.cvslate/lock');
+  const lock = path.join(root, '.lulicv/lock');
   const owner = JSON.parse(await readFile(path.join(lock, 'owner.json'), 'utf8'));
   if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0)
     throw new ResumeError('WORKSPACE_LOCKED', '锁记录损坏，请人工检查');

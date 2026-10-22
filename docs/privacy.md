@@ -2,11 +2,11 @@
 
 让 AI agent 改简历时，agent 读到的内容会发给云端模型。不希望姓名、手机号、照片这类信息离开本机，就开启隐私模式：agent 照常改内容、调版面，但只看到占位；真实信息存在本机，只在你批准导出的 PDF 里填入。
 
-隐私模式只在工作区模式（`cvslate preview` 打开的网页）里可用；浏览器模式没有 agent 接入，不需要它。
+隐私模式只在工作区模式（`lulicv preview` 打开的网页）里可用；浏览器模式没有 agent 接入，不需要它。
 
 ## 能防什么，不能防什么
 
-隐私模式开启后，通过 CVSlate 读取简历的 agent 只能看到占位，真实信息只出现在你在浏览器里批准的 PDF 中。这能防止 AI 助手在正常工作时把你的联系方式发给模型服务商；但它不能阻止拥有本机命令行权限的程序直接读取数据文件，需要更强隔离时请为 agent 开启沙箱（见下面的 [Claude Code 示例](#用-claude-code-沙箱挡住数据文件)）。即使隐藏了联系方式，公司、学校、时间的组合仍可能识别出你本人。
+隐私模式开启后，通过履栗读取简历的 agent 只能看到占位，真实信息只出现在你在浏览器里批准的 PDF 中。这能防止 AI 助手在正常工作时把你的联系方式发给模型服务商；但它不能阻止拥有本机命令行权限的程序直接读取数据文件，需要更强隔离时请为 agent 开启沙箱（见下面的 [Claude Code 示例](#用-claude-code-沙箱挡住数据文件)）。即使隐藏了联系方式，公司、学校、时间的组合仍可能识别出你本人。
 
 另外两点：
 
@@ -20,7 +20,7 @@
 3. 点「下一步」，确认会收起哪些内容。如果几份简历里同一项写得不一样（比如换过手机号），这里会让你选导出时统一用哪个。
 4. 点「开启隐私模式」。
 
-开启后，各份简历里这些信息换成占位，网页显示为【手机号】【邮箱】这样的标签，工具栏的「隐私模式」变成蓝色。agent 也可以按你的要求用 `cvslate privacy on` 开启或加隐藏项，但关闭、减少隐藏项只能在网页里做。
+开启后，各份简历里这些信息换成占位，网页显示为【手机号】【邮箱】这样的标签，工具栏的「隐私模式」变成蓝色。agent 也可以按你的要求用 `lulicv privacy on` 开启或加隐藏项，但关闭、减少隐藏项只能在网页里做。
 
 ## 修改隐私信息
 
@@ -50,22 +50,22 @@ agent 请求导出时，网页会弹出「agent 请求导出 PDF」，写明哪�
 
 ## 用 Claude Code 沙箱挡住数据文件
 
-隐私模式只管通过 CVSlate 读取的内容。agent 如果直接打开工作区的数据库文件，仍能读到真实信息。Claude Code 的[沙箱](https://code.claude.com/docs/en/sandboxing)可以禁止 agent 执行的命令读取这些文件，[权限规则](https://code.claude.com/docs/en/permissions)可以禁止它用读文件工具打开。
+隐私模式只管通过履栗读取的内容。agent 如果直接打开工作区的数据库文件，仍能读到真实信息。Claude Code 的[沙箱](https://code.claude.com/docs/en/sandboxing)可以禁止 agent 执行的命令读取这些文件，[权限规则](https://code.claude.com/docs/en/permissions)可以禁止它用读文件工具打开。
 
 > 下面的配置按 Claude Code 官方文档写成，还没有在真机上逐项验证。使用前请先自己确认一下：开启后让 agent 执行 `cat` 读数据库，应该被拒绝。
 
 ### 要挡住的文件
 
-以工作区在 `~/cvslate` 为例：
+以工作区在 `~/lulicv` 为例：
 
 | 文件 | 内容 |
 | --- | --- |
-| `cvslate.db`、`cvslate.db-wal`、`cvslate.db-shm` | 简历和隐私信息 |
-| `.cvslate/before-restore-*` | 恢复备份前自动留的副本 |
-| `.cvslate/backup-*.db` | 网页备份时的临时文件 |
+| `lulicv.db`、`lulicv.db-wal`、`lulicv.db-shm` | 简历和隐私信息 |
+| `.lulicv/before-restore-*` | 恢复备份前自动留的副本 |
+| `.lulicv/backup-*.db` | 网页备份时的临时文件 |
 | 浏览器下载目录里的 PDF（如 `~/Downloads/*.pdf`） | 导出的简历 |
 
-不要挡 `.cvslate/runtime.json` 和 `cvslate.json`：CLI 要读它们才能连上 Bridge。
+不要挡 `.lulicv/runtime.json` 和 `lulicv.json`：CLI 要读它们才能连上 Bridge。
 
 ### 配置
 
@@ -80,18 +80,18 @@ agent 请求导出时，网页会弹出「agent 请求导出 PDF」，写明哪�
     },
     "filesystem": {
       "denyRead": [
-        "~/cvslate/cvslate.db*",
-        "~/cvslate/.cvslate/before-restore-*",
-        "~/cvslate/.cvslate/backup-*",
+        "~/lulicv/lulicv.db*",
+        "~/lulicv/.lulicv/before-restore-*",
+        "~/lulicv/.lulicv/backup-*",
         "~/Downloads/*.pdf"
       ]
     }
   },
   "permissions": {
     "deny": [
-      "Read(~/cvslate/cvslate.db*)",
-      "Read(~/cvslate/.cvslate/before-restore-*)",
-      "Read(~/cvslate/.cvslate/backup-*)",
+      "Read(~/lulicv/lulicv.db*)",
+      "Read(~/lulicv/.lulicv/before-restore-*)",
+      "Read(~/lulicv/.lulicv/backup-*)",
       "Read(~/Downloads/*.pdf)"
     ]
   }
@@ -99,16 +99,16 @@ agent 请求导出时，网页会弹出「agent 请求导出 PDF」，写明哪�
 ```
 
 - `sandbox.filesystem.denyRead` 挡住 agent 执行的命令（`cat`、`sqlite3`、`pdftotext` 等）。它管不到 Claude Code 自带的读文件工具，所以 `permissions.deny` 里再写一遍 `Read(...)`。
-- `network.allowLocalBinding` 让沙箱里的 CLI 能连本机的 Bridge（Bridge 只监听 `127.0.0.1`，每个工作区用固定端口）。官方文档写明这一项在 macOS 上允许连接 localhost。其他系统上如果 CLI 连不上，可以把 CLI 加进 `sandbox.excludedCommands`，例如 `"node /Skill目录/scripts/cvslate.mjs *"`；这样 CLI 本身不在沙箱里运行，但 agent 的其他命令仍受限制。
-- 沙箱挡不住一条路：CLI 要用 token 连 Bridge，agent 因此也能自己兑换 `cvslate preview` 的链接，以你的身份登录浏览器去批准导出。这和读数据库一样属于故意绕路，靠 Skill 里的规则约束。
+- `network.allowLocalBinding` 让沙箱里的 CLI 能连本机的 Bridge（Bridge 只监听 `127.0.0.1`，每个工作区用固定端口）。官方文档写明这一项在 macOS 上允许连接 localhost。其他系统上如果 CLI 连不上，可以把 CLI 加进 `sandbox.excludedCommands`，例如 `"node /Skill目录/scripts/lulicv.mjs *"`；这样 CLI 本身不在沙箱里运行，但 agent 的其他命令仍受限制。
+- 沙箱挡不住一条路：CLI 要用 token 连 Bridge，agent 因此也能自己兑换 `lulicv preview` 的链接，以你的身份登录浏览器去批准导出。这和读数据库一样属于故意绕路，靠 Skill 里的规则约束。
 - 不希望命令绕开沙箱执行，可以在 `sandbox` 里加 `"allowUnsandboxedCommands": false`，关掉「沙箱里失败就到沙箱外重试」。
 
 ### Bridge 由你来启动
 
-沙箱对 agent 启动的所有子进程都生效。agent 在沙箱里执行 `cvslate preview` 启动的 Bridge 也读不了数据库，无法正常工作。所以开了沙箱后，请自己启动 Bridge：在自己的终端里执行，或在 Claude Code 里用 `!` 开头直接输入（`!` 输入的命令一般不进沙箱）：
+沙箱对 agent 启动的所有子进程都生效。agent 在沙箱里执行 `lulicv preview` 启动的 Bridge 也读不了数据库，无法正常工作。所以开了沙箱后，请自己启动 Bridge：在自己的终端里执行，或在 Claude Code 里用 `!` 开头直接输入（`!` 输入的命令一般不进沙箱）：
 
 ```bash
-node "<Skill目录>/scripts/cvslate.mjs" preview
+node "<Skill目录>/scripts/lulicv.mjs" preview
 ```
 
 Bridge 启动后，agent 在沙箱里照常用 CLI 或 MCP 工作。

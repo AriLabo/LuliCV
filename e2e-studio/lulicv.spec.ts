@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: '先看看简历效果' })).toBeVisible();
   await page.evaluate(async (document: ResumeDocument) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('cvslate', 1);
+      const request = indexedDB.open('lulicv', 1);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
@@ -243,7 +243,7 @@ test('Chromium 打印生成真实文本 A4 PDF', async ({ page }) => {
   const outputDir = path.resolve('output/pdf');
   await mkdir(outputDir, { recursive: true });
   const pdf = await page.pdf({
-    path: path.join(outputDir, 'cvslate-standard-sample.pdf'),
+    path: path.join(outputDir, 'lulicv-standard-sample.pdf'),
     format: 'A4',
     printBackground: true,
     preferCSSPageSize: true,

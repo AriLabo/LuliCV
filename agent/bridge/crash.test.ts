@@ -31,7 +31,7 @@ test('process death before commit rolls back; after commit retains receipt and r
     import { DatabaseSync } from 'node:sqlite';
     const [root,id,mode]=process.argv.slice(2);
     const repository=await SqliteRepository.open(root);
-    if(mode==='before') { const db=new DatabaseSync(root+'/cvslate.db'); db.exec('BEGIN IMMEDIATE'); db.prepare('UPDATE resumes SET current_revision=99 WHERE id=?').run(id); }
+    if(mode==='before') { const db=new DatabaseSync(root+'/lulicv.db'); db.exec('BEGIN IMMEDIATE'); db.prepare('UPDATE resumes SET current_revision=99 WHERE id=?').run(id); }
     else { const service=new ResumeService(repository,createResumeRecord); await service.patch(id,{baseRevision:1,mutationId:'crash-after',operations:[{op:'replace',path:'/name',value:'已提交'}]}); }
     process.stdout.write('ready\\n'); setInterval(()=>{},1000);
   `,

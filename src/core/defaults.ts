@@ -94,7 +94,7 @@ const sampleAppearance: Appearance = {
     .map((rule) => `&.rs-theme--standard ${rule}`)
     .join('\n'),
 };
-/** The built-in example as a new resume; the editor's 使用这份示例 and `cvslate import --sample` both create it from here. */
+/** The built-in example as a new resume; the editor's 使用这份示例 and `lulicv import --sample` both create it from here. */
 export function sampleResumeInput(): { name: string; data: ResumeData; appearance: Appearance; sample: true } {
   return {
     name: sampleName,

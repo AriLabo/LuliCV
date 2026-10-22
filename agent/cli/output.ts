@@ -10,9 +10,9 @@ export async function writeOutput(root: string, destination: string, contents: B
   const workspaceRoot = await realpath(root);
   if (
     output.startsWith(path.join(workspaceRoot, 'resumes') + path.sep) ||
-    output.startsWith(path.join(workspaceRoot, '.cvslate') + path.sep) ||
-    output === path.join(workspaceRoot, 'cvslate.json') ||
-    output.startsWith(path.join(workspaceRoot, 'cvslate.db'))
+    output.startsWith(path.join(workspaceRoot, '.lulicv') + path.sep) ||
+    output === path.join(workspaceRoot, 'lulicv.json') ||
+    output.startsWith(path.join(workspaceRoot, 'lulicv.db'))
   )
     throw new ResumeError('VALIDATION_FAILED', '输出不能覆盖工作区状态');
   let handle;

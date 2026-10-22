@@ -27,7 +27,7 @@
 
 ## Fraunces
 
-- Not bundled as a font. The CVSlate wordmark (`src/studio/brand.tsx`) and the "Cv" in `public/favicon.svg` are outlines of
+- Not bundled as a font. The LuliCV wordmark (`src/studio/brand.tsx`) and the "Cv" in `public/favicon.svg` are outlines of
   Fraunces Italic.
 - Source: https://github.com/undercasetype/Fraunces
 - License: SIL Open Font License 1.1

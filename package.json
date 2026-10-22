@@ -1,16 +1,16 @@
 {
-  "name": "@arilabo/cvslate",
-  "version": "0.1.3",
+  "name": "@arilabo/lulicv",
+  "version": "0.2.0",
   "description": "供 AI Agent 使用的本地简历编辑工具：Skill、CLI 和网页编辑器",
   "author": "AriLabo",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AriLabo/CVSlate.git"
+    "url": "git+https://github.com/AriLabo/LuliCV.git"
   },
-  "homepage": "https://github.com/AriLabo/CVSlate#readme",
+  "homepage": "https://github.com/AriLabo/LuliCV#readme",
   "bugs": {
-    "url": "https://github.com/AriLabo/CVSlate/issues"
+    "url": "https://github.com/AriLabo/LuliCV/issues"
   },
   "type": "module",
   "scripts": {
@@ -25,7 +25,7 @@
     "test:integration": "vitest run agent",
     "test:e2e": "playwright test",
     "snapshots:update": "node scripts/update-snapshots.mjs",
-    "cvslate": "node agent-dist/cli.mjs",
+    "lulicv": "node agent-dist/cli.mjs",
     "mcp": "node agent-dist/mcp.mjs",
     "themes:generate": "node scripts/theme-catalog.mjs",
     "themes:check": "node scripts/theme-catalog.mjs --check",
@@ -70,8 +70,8 @@
     "node": ">=22.22.3"
   },
   "bin": {
-    "cvslate": "agent-dist/cli.mjs",
-    "cvslate-mcp": "agent-dist/mcp.mjs"
+    "lulicv": "agent-dist/cli.mjs",
+    "lulicv-mcp": "agent-dist/mcp.mjs"
   },
   "files": [
     "agent-dist/*.mjs",

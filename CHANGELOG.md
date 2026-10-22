@@ -1,5 +1,19 @@
 # 更新记录
 
+## 0.2.0
+
+CVSlate 改名为履栗（LuliCV）。除了名字，功能和 0.1.3 一样。
+
+- 新名字：npm 包是 `@arilabo/lulicv`，Skill 和命令是 `lulicv`，GitHub 仓库是 AriLabo/LuliCV。
+- 数据目录：Mac 是 `~/Library/Application Support/LuliCV`，Windows 是 `%LOCALAPPDATA%\LuliCV`，Linux 是 `~/.local/share/lulicv`。新版本不读取旧的 CVSlate 目录。
+- 从 CVSlate 迁移：
+  1. 在旧版网页「导出、导入与粘贴 JSON」里点「导出全部 JSON」。
+  2. 删除旧的 `cvslate` Skill，从 GitHub 安装 AriLabo/LuliCV。
+  3. 在新版网页点「导入简历 JSON」（已经有简历时用「从文件导入（作为新简历）」）。
+
+  简历内容和样式会带过来，修订记录、母版和岗位版之间的关系不会，隐私模式要重新开启。用了自定义主题的简历会显示「未安装」，用 `lulicv theme install <主题目录>` 重新安装后恢复。`cvslate backup` 做的备份不能恢复到新版。确认迁移完成后，可以删除旧的 CVSlate 数据目录。
+- 旧包 `@arilabo/cvslate` 不再更新。
+
 ## 0.1.3
 
 优化首次使用体验，让新用户更容易了解 CVSlate，并快速通过示例体验简历编辑和排版。

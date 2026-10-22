@@ -43,7 +43,7 @@ it('authenticates local clients, validates host/origin and serves no workspace f
       req.end();
     });
     expect(badHost).toBe(403);
-    expect((await fetch(bridge.origin + '/.cvslate/runtime.json')).status).toBe(404);
+    expect((await fetch(bridge.origin + '/.lulicv/runtime.json')).status).toBe(404);
     // The CLI token, which agents can read from runtime.json, neither passes as a browser cookie nor buys one.
     const port = new URL(bridge.origin).port;
     expect(
@@ -87,12 +87,12 @@ it('authenticates local clients, validates host/origin and serves no workspace f
     // Only a hash of the cookie is stored.
     expect(
       JSON.stringify(
-        new DatabaseSync(path.join(root, 'cvslate.db'), { readOnly: true })
+        new DatabaseSync(path.join(root, 'lulicv.db'), { readOnly: true })
           .prepare('SELECT * FROM browser_sessions')
           .all(),
       ),
     ).not.toContain(cookie.split(';')[0].split('=')[1]);
-    expect(await (await fetch(bridge.origin)).text()).toContain('cvslate');
+    expect(await (await fetch(bridge.origin)).text()).toContain('lulicv');
   } finally {
     await bridge.close();
     await rm(root, { recursive: true, force: true });
@@ -190,8 +190,8 @@ it('authenticated shutdown rejects new work, waits for active requests and relea
     const stopped = await bridgeRequest(bridge.runtime, '/api/shutdown', 'POST', {});
     expect(stopped.status).toBe(202);
     await bridge.close();
-    await expect(access(path.join(root, '.cvslate/runtime.json'))).rejects.toMatchObject({ code: 'ENOENT' });
-    await expect(access(path.join(root, '.cvslate/lock'))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(access(path.join(root, '.lulicv/runtime.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(access(path.join(root, '.lulicv/lock'))).rejects.toMatchObject({ code: 'ENOENT' });
     const restarted = await startBridge({ workspace: root, dist: path.join(root, 'web') });
     await restarted.close();
   } finally {
@@ -574,7 +574,7 @@ it('keeps serving the web app from memory after losing file access and says why 
     // Simulates a sandbox revoking file access from a background Bridge: the installation disappears from under it.
     await rm(dist, { recursive: true });
     expect(await (await fetch(bridge.origin + '/')).text()).toContain('fixture');
-    expect((await fetch(bridge.origin + '/../cvslate.json')).status).toBe(404);
+    expect((await fetch(bridge.origin + '/../lulicv.json')).status).toBe(404);
     expect(await (await bridgeRequest(bridge.runtime, '/api/health')).json()).toMatchObject({ fileAccess: false });
     const document = await bridge.service.create({ data: cloneSample() });
     const failure = await bridgeRequest(bridge.runtime, `/api/resumes/${document.id}/inspect`, 'POST', {
@@ -667,7 +667,7 @@ it('installs, serves, replaces and removes workspace themes, and skips broken on
     });
     await expect(access(path.join(root, 'themes/ink-demo'))).rejects.toMatchObject({ code: 'ENOENT' });
     expect(
-      (await readdir(path.join(root, '.cvslate/trash'))).filter((name) => name.startsWith('theme-ink-demo-')),
+      (await readdir(path.join(root, '.lulicv/trash'))).filter((name) => name.startsWith('theme-ink-demo-')),
     ).toHaveLength(2);
     await bridgeRequest(bridge.runtime, '/api/themes/broken-demo', 'DELETE', {});
     await expect(bridgeRequest(bridge.runtime, '/api/themes/ink-demo', 'DELETE', {})).rejects.toMatchObject({

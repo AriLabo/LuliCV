@@ -3,8 +3,8 @@ import type { ResumeData } from './types';
 const layout = { pageBreakBefore: false };
 
 /**
- * The built-in example people try CVSlate on: a fictitious content-operations resume. Shown on an empty workspace and
- * created by the editor's 使用这份示例 and `cvslate import --sample`. Tests use `sampleResume` in fixtures.ts instead.
+ * The built-in example people try LuliCV on: a fictitious content-operations resume. Shown on an empty workspace and
+ * created by the editor's 使用这份示例 and `lulicv import --sample`. Tests use `sampleResume` in fixtures.ts instead.
  */
 export const demoResume: ResumeData = {
   schemaVersion: 1,

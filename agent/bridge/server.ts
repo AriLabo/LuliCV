@@ -38,7 +38,7 @@ export interface Runtime {
   token: string;
   workspaceId: string;
 }
-/** One sample rendered with a theme that is not installed yet (cvslate theme check). */
+/** One sample rendered with a theme that is not installed yet (lulicv theme check). */
 export interface ThemeCheckResult {
   sample: string;
   name: string;
@@ -127,7 +127,7 @@ export async function startBridge(options: {
     await repository.close();
     throw error;
   });
-  const manifest = JSON.parse(await readFile(path.join(repository.root, 'cvslate.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(repository.root, 'lulicv.json'), 'utf8'));
   const themes = await ThemeStore.open(repository.root).catch(async (error) => {
     await repository.close();
     throw error;
@@ -191,7 +191,7 @@ export async function startBridge(options: {
       webOpen,
       message: webOpen
         ? '等用户在网页里批准，5 分钟内有效'
-        : '没有打开的 CVSlate 网页：请用户打开网页（cvslate preview 给出的网址）来批准，请求 5 分钟后自动取消',
+        : '没有打开的履栗网页：请用户打开网页（lulicv preview 给出的网址）来批准，请求 5 分钟后自动取消',
     };
   };
   /**
@@ -243,7 +243,7 @@ export async function startBridge(options: {
           // The render page reads a job by its unguessable key, which only the Bridge's own renderer is given.
           const renderJob = pathname.startsWith('/api/render/') && request.method === 'GET';
           if (!previewSession && !renderJob && !authorized(request))
-            throw new ResumeError('UNAUTHORIZED', '本地会话无效，请从 cvslate preview 重新打开');
+            throw new ResumeError('UNAUTHORIZED', '本地会话无效，请从 lulicv preview 重新打开');
           if (
             closing &&
             !['/api/health', '/api/shutdown', '/api/session'].includes(pathname) &&
@@ -262,7 +262,7 @@ export async function startBridge(options: {
           )
             view = new PrivacyView(privacy, repository.privateStore());
           if (pathname === '/api/session' && request.method === 'POST') {
-            if (agent) throw new ResumeError('UNAUTHORIZED', '浏览器只能用 cvslate preview 给出的链接打开');
+            if (agent) throw new ResumeError('UNAUTHORIZED', '浏览器只能用 lulicv preview 给出的链接打开');
             if (previewSession) {
               // The port is fixed per workspace, so the sign-in outlasts Bridge restarts; the address can be bookmarked.
               const secret = randomBytes(32).toString('hex');
@@ -350,7 +350,7 @@ export async function startBridge(options: {
           if (pathname === '/api/backup' && request.method === 'GET') {
             if (view && agent)
               throw new ResumeError('PRIVACY_MODE', '隐私模式下备份含真实个人信息，请用户在网页里操作');
-            const temporary = path.join(repository.root, '.cvslate', `backup-${randomUUID()}.db`);
+            const temporary = path.join(repository.root, '.lulicv', `backup-${randomUUID()}.db`);
             try {
               await repository.backupTo(temporary);
               const content = await readFile(temporary);
@@ -714,7 +714,7 @@ export async function startBridge(options: {
           content = Buffer.from(
             content
               .toString()
-              .replace('<head>', `<head><meta name="cvslate-workspace" content="${manifest.workspaceId}">`),
+              .replace('<head>', `<head><meta name="lulicv-workspace" content="${manifest.workspaceId}">`),
           );
         // Installed themes are third-party CSS: the page itself may only reach this Bridge, whatever a stylesheet asks for.
         if (relative === 'index.html') response.setHeader('Content-Security-Policy', CONTENT_SECURITY_POLICY);
@@ -791,9 +791,9 @@ export async function startBridge(options: {
     origin = `http://127.0.0.1:${address.port}`;
     runtime = { pid: process.pid, origin, token, workspaceId: manifest.workspaceId };
     if (manifest.bridgePort !== address.port)
-      await atomicWrite(path.join(repository.root, 'cvslate.json'), { ...manifest, bridgePort: address.port });
+      await atomicWrite(path.join(repository.root, 'lulicv.json'), { ...manifest, bridgePort: address.port });
     render = options.renderer?.(service, runtime, themes);
-    await atomicWrite(path.join(repository.root, '.cvslate/runtime.json'), runtime);
+    await atomicWrite(path.join(repository.root, '.lulicv/runtime.json'), runtime);
   } catch (error) {
     unsubscribe();
     server.close();

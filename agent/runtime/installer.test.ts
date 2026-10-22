@@ -9,21 +9,21 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { pathToFileURL } from 'node:url';
 const execute = promisify(execFile);
-const scripts = path.resolve('skills/cvslate/scripts');
+const scripts = path.resolve('skills/lulicv/scripts');
 import { dataHome } from './workspace-location';
 const { runtimeRoot, removeOlder } = await import(pathToFileURL(path.join(scripts, 'runtime-location.mjs')).href);
 // A minimal npm tarball: a manifest and a cli.mjs that answers doctor, which is all the installer touches.
 async function tarball(root: string, version: string, doctorReport?: unknown) {
   const source = path.join(root, `pack-${version}`);
   await mkdir(path.join(source, 'package/agent-dist'), { recursive: true });
-  await writeFile(path.join(source, 'package/package.json'), JSON.stringify({ name: '@arilabo/cvslate', version }));
+  await writeFile(path.join(source, 'package/package.json'), JSON.stringify({ name: '@arilabo/lulicv', version }));
   await writeFile(
     path.join(source, 'package/agent-dist/cli.mjs'),
     doctorReport === undefined
       ? `process.stdout.write(JSON.stringify({ ok: true, version: ${JSON.stringify(version)}, args: process.argv.slice(2) }));`
       : `process.stdout.write(${JSON.stringify(JSON.stringify(doctorReport))});`,
   );
-  const archive = path.join(root, `arilabo-cvslate-${version}.tgz`);
+  const archive = path.join(root, `arilabo-lulicv-${version}.tgz`);
   await execute('tar', ['-czf', archive, '-C', source, 'package']);
   return archive;
 }
@@ -35,29 +35,29 @@ async function skillCopy(root: string, version: string | undefined) {
   else await rm(path.join(skill, 'release.json'));
   return skill;
 }
-// Serves @arilabo/cvslate's packument and tarballs the way an npm registry does; anything else is a 404.
+// Serves @arilabo/lulicv's packument and tarballs the way an npm registry does; anything else is a 404.
 async function registry(archives: Record<string, string>) {
   const versions: Record<string, unknown> = {},
     files: Record<string, Buffer> = {};
   const server = createServer((request, response) => {
     const { origin } = new URL(`http://${request.headers.host}`);
-    if (request.url === '/@arilabo%2fcvslate') {
+    if (request.url === '/@arilabo%2flulicv') {
       for (const [version, data] of Object.entries(files))
         versions[version] = {
-          name: '@arilabo/cvslate',
+          name: '@arilabo/lulicv',
           version,
           dist: {
-            tarball: `${origin}/@arilabo/cvslate/-/cvslate-${version}.tgz`,
+            tarball: `${origin}/@arilabo/lulicv/-/lulicv-${version}.tgz`,
             integrity: `sha512-${createHash('sha512').update(data).digest('base64')}`,
           },
         };
       response.setHeader('content-type', 'application/json');
       response.end(
-        JSON.stringify({ name: '@arilabo/cvslate', 'dist-tags': { latest: Object.keys(files).at(-1) }, versions }),
+        JSON.stringify({ name: '@arilabo/lulicv', 'dist-tags': { latest: Object.keys(files).at(-1) }, versions }),
       );
       return;
     }
-    const version = request.url?.match(/^\/@arilabo\/cvslate\/-\/cvslate-(.+)\.tgz$/)?.[1];
+    const version = request.url?.match(/^\/@arilabo\/lulicv\/-\/lulicv-(.+)\.tgz$/)?.[1];
     if (version && files[version]) {
       response.end(files[version]);
       return;
@@ -76,20 +76,20 @@ it('the committed Skill pairs with the runtime version in package.json', async (
   const { version } = JSON.parse(await readFile('package.json', 'utf8'));
   expect(JSON.parse(await readFile(path.join(scripts, 'release.json'), 'utf8'))).toEqual({ version });
 });
-it('finds runtimes in each OS per-user data directory, or CVSLATE_HOME, beside the default workspace', () => {
+it('finds runtimes in each OS per-user data directory, or LULICV_HOME, beside the default workspace', () => {
   const cases: [NodeJS.ProcessEnv, NodeJS.Platform, string, string][] = [
-    [{}, 'darwin', '/Users/a', path.join('/Users/a', 'Library', 'Application Support', 'CVSlate')],
+    [{}, 'darwin', '/Users/a', path.join('/Users/a', 'Library', 'Application Support', 'LuliCV')],
     [
       { LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' },
       'win32',
       'C:\\Users\\a',
-      path.join('C:\\Users\\a\\AppData\\Local', 'CVSlate'),
+      path.join('C:\\Users\\a\\AppData\\Local', 'LuliCV'),
     ],
-    [{}, 'win32', 'C:\\Users\\a', path.join('C:\\Users\\a', 'AppData', 'Local', 'CVSlate')],
-    [{}, 'linux', '/home/a', path.join('/home/a', '.local', 'share', 'cvslate')],
-    [{ XDG_DATA_HOME: '/data' }, 'linux', '/home/a', path.join('/data', 'cvslate')],
-    [{ XDG_DATA_HOME: 'relative' }, 'linux', '/home/a', path.join('/home/a', '.local', 'share', 'cvslate')],
-    [{ CVSLATE_HOME: '/isolated' }, 'darwin', '/Users/a', path.resolve('/isolated')],
+    [{}, 'win32', 'C:\\Users\\a', path.join('C:\\Users\\a', 'AppData', 'Local', 'LuliCV')],
+    [{}, 'linux', '/home/a', path.join('/home/a', '.local', 'share', 'lulicv')],
+    [{ XDG_DATA_HOME: '/data' }, 'linux', '/home/a', path.join('/data', 'lulicv')],
+    [{ XDG_DATA_HOME: 'relative' }, 'linux', '/home/a', path.join('/home/a', '.local', 'share', 'lulicv')],
+    [{ LULICV_HOME: '/isolated' }, 'darwin', '/Users/a', path.resolve('/isolated')],
   ];
   // The Skill's script and the runtime compute the same directory independently, so they must agree.
   for (const [env, platform, home, expected] of cases) {
@@ -101,7 +101,7 @@ it('private installer rejects a checksum failure from any mirror and a package o
   const root = await mkdtemp(path.join(tmpdir(), 'resume-installer-'));
   try {
     const home = path.join(root, '中文 数据');
-    const env = { ...process.env, CVSLATE_HOME: home };
+    const env = { ...process.env, LULICV_HOME: home };
     const archive = await tarball(root, '1.2.0');
     const paired = await skillCopy(root, '1.2.0');
     const mock = path.join(root, 'network.mjs');
@@ -142,9 +142,7 @@ it('private installer rejects a checksum failure from any mirror and a package o
       execute(process.execPath, [path.join(skill, 'install-runtime.mjs'), '--package', archive], { env }),
     ).rejects.toMatchObject({
       code: 1,
-      stderr: expect.stringMatching(
-        /install arilabo-cvslate-1\.3\.0\.tgz.*install the Skill of [^ ]+ \(cvslate-skill-/,
-      ),
+      stderr: expect.stringMatching(/install arilabo-lulicv-1\.3\.0\.tgz.*install the Skill of [^ ]+ \(lulicv-skill-/),
     });
     await expect(
       execute(process.execPath, [path.join(await skillCopy(root, undefined), 'install-runtime.mjs')], { env }),
@@ -156,7 +154,7 @@ it('private installer rejects a checksum failure from any mirror and a package o
         [path.join(skill, 'install-runtime.mjs'), '--package', path.join(root, 'not-a-package.tgz')],
         { env },
       ),
-    ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('CVSlate .tgz') });
+    ).rejects.toMatchObject({ code: 1, stderr: expect.stringContaining('LuliCV .tgz') });
     expect(await readdir(path.join(home, 'runtime'))).toEqual([]);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -167,11 +165,11 @@ it('the Skill entry runs the runtime of its own version, says which package is m
   const root = await realpath(await mkdtemp(path.join(tmpdir(), 'resume-entry-')));
   try {
     const home = path.join(root, 'home');
-    const env = { ...process.env, CVSLATE_HOME: home };
+    const env = { ...process.env, LULICV_HOME: home };
     const skill = await skillCopy(root, '1.3.0');
     // Fake installed runtimes: an install.json and a cli.mjs that echoes its arguments.
     const fake = async (version: string, installedAt: string) => {
-      const app = path.join(home, 'runtime', version, 'app/node_modules/@arilabo/cvslate/agent-dist');
+      const app = path.join(home, 'runtime', version, 'app/node_modules/@arilabo/lulicv/agent-dist');
       await mkdir(app, { recursive: true });
       await writeFile(
         path.join(app, 'cli.mjs'),
@@ -184,15 +182,15 @@ it('the Skill entry runs the runtime of its own version, says which package is m
     };
     await fake('1.1.0', '2026-01-01T00:00:00.000Z');
     await fake('1.2.0', '2026-02-01T00:00:00.000Z');
-    const missing = execute(process.execPath, [path.join(skill, 'cvslate.mjs'), 'doctor'], { env });
+    const missing = execute(process.execPath, [path.join(skill, 'lulicv.mjs'), 'doctor'], { env });
     await expect(missing).rejects.toMatchObject({
       code: 1,
       stderr: expect.stringContaining('"code":"RUNTIME_MISSING"'),
     });
-    await expect(missing).rejects.toMatchObject({ stderr: expect.stringContaining('@arilabo/cvslate@1.3.0') });
+    await expect(missing).rejects.toMatchObject({ stderr: expect.stringContaining('@arilabo/lulicv@1.3.0') });
     const incomplete = execute(
       process.execPath,
-      [path.join(await skillCopy(root, undefined), 'cvslate.mjs'), 'doctor'],
+      [path.join(await skillCopy(root, undefined), 'lulicv.mjs'), 'doctor'],
       { env },
     );
     await expect(incomplete).rejects.toMatchObject({
@@ -200,7 +198,7 @@ it('the Skill entry runs the runtime of its own version, says which package is m
       stderr: expect.stringContaining('"code":"SKILL_INCOMPLETE"'),
     });
     await fake('1.3.0', '2026-03-01T00:00:00.000Z');
-    const { stdout } = await execute(process.execPath, [path.join(skill, 'cvslate.mjs'), 'get', '中文 id'], { env });
+    const { stdout } = await execute(process.execPath, [path.join(skill, 'lulicv.mjs'), 'get', '中文 id'], { env });
     expect(JSON.parse(stdout)).toEqual({ version: '1.3.0', args: ['get', '中文 id'] });
     // Installing the same version again reports it and changes nothing; cleanup keeps 1.2.0 to step back to.
     const { stdout: report } = await execute(
@@ -212,7 +210,7 @@ it('the Skill entry runs the runtime of its own version, says which package is m
       installed: true,
       alreadyInstalled: true,
       version: '1.3.0',
-      invocation: ['node', path.join(skill, 'cvslate.mjs')],
+      invocation: ['node', path.join(skill, 'lulicv.mjs')],
     });
     expect((await readdir(path.join(home, 'runtime'))).sort()).toEqual(['1.1.0', '1.2.0', '1.3.0']);
     // A fresh install keeps the most recently installed other version; directories that are not installs are left alone.
@@ -237,7 +235,7 @@ it('installs the Skill version from the npm registry, or from a provided package
     };
     const skill = await skillCopy(root, '1.2.0');
     const { stdout } = await execute(process.execPath, [path.join(skill, 'install-runtime.mjs')], {
-      env: { ...npmEnv, CVSLATE_HOME: path.join(root, 'npm-home') },
+      env: { ...npmEnv, LULICV_HOME: path.join(root, 'npm-home') },
     });
     const report = JSON.parse(stdout);
     // The registry's latest is 1.3.0; the Skill still gets exactly its own version.
@@ -254,8 +252,8 @@ it('installs the Skill version from the npm registry, or from a provided package
     });
     const { stdout: fromPackage } = await execute(
       process.execPath,
-      [path.join(skill, 'install-runtime.mjs'), '--package', path.join(root, 'arilabo-cvslate-1.2.0.tgz')],
-      { env: { ...npmEnv, CVSLATE_HOME: path.join(root, 'package-home') } },
+      [path.join(skill, 'install-runtime.mjs'), '--package', path.join(root, 'arilabo-lulicv-1.2.0.tgz')],
+      { env: { ...npmEnv, LULICV_HOME: path.join(root, 'package-home') } },
     );
     expect(JSON.parse(fromPackage)).toMatchObject({
       installed: true,
@@ -274,7 +272,7 @@ it('installs the Skill version from the npm registry, or from a provided package
           '--package',
           await tarball(path.join(root, name), '1.2.0', doctorReport),
         ],
-        { env: { ...npmEnv, CVSLATE_HOME: path.join(root, `${name}-home`) } },
+        { env: { ...npmEnv, LULICV_HOME: path.join(root, `${name}-home`) } },
       );
       return JSON.parse(stdout);
     };
@@ -294,12 +292,12 @@ it('installs the Skill version from the npm registry, or from a provided package
     // A version the registry (or a lagging mirror) does not have yet fails with the way forward and leaves nothing behind.
     const home = path.join(root, 'missing-home');
     const failed = execute(process.execPath, [path.join(await skillCopy(root, '1.4.0'), 'install-runtime.mjs')], {
-      env: { ...npmEnv, CVSLATE_HOME: home },
+      env: { ...npmEnv, LULICV_HOME: home },
     });
     await expect(failed).rejects.toMatchObject({
       code: 1,
       stdout: '',
-      stderr: expect.stringContaining('npm could not install @arilabo/cvslate@1.4.0'),
+      stderr: expect.stringContaining('npm could not install @arilabo/lulicv@1.4.0'),
     });
     await expect(failed).rejects.toMatchObject({ stderr: expect.stringContaining('--package') });
     expect(await readdir(path.join(home, 'runtime'))).toEqual([]);

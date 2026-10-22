@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cvslate.local/schema/resume-data-v1.json",
-  "title": "CVSlate ResumeData v1",
+  "$id": "https://lulicv.local/schema/resume-data-v1.json",
+  "title": "LuliCV ResumeData v1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "basics", "sections"],

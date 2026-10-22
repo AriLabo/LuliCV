@@ -422,7 +422,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
             dirty.add(draft.local.id);
             conflicts[draft.local.id] = true;
           }
-        const storedId = localStorage.getItem('cvslate:active');
+        const storedId = localStorage.getItem('lulicv:active');
         const activeId = records.find((record) => record.id === storedId)?.id ?? records[0]?.id ?? '';
         if (repository instanceof BridgeRepository) await get().loadPrivacy();
         set({
@@ -445,7 +445,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   selectResume: (id) => {
     const workspace = get().workspace;
     if (!workspace?.resumes.some((record) => record.id === id)) return;
-    localStorage.setItem('cvslate:active', id);
+    localStorage.setItem('lulicv:active', id);
     set({ workspace: { ...workspace, activeId: id }, ...flags(id) });
   },
   updateData: (updater) => edit((record) => ({ ...record, data: updater(record.data) }), 'data', 700),

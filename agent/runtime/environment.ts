@@ -20,7 +20,7 @@ export interface Diagnostic {
 }
 const rootAt = () => fileURLToPath(new URL('../', import.meta.url));
 export async function doctor(location?: WorkspaceLocation, installedRoot = rootAt()) {
-  const checks: Diagnostic[] = [{ name: 'version', status: 'ok', message: `CVSlate ${buildLabel()}` }];
+  const checks: Diagnostic[] = [{ name: 'version', status: 'ok', message: `LuliCV ${buildLabel()}` }];
   // Asked first and awaited last: npm takes a second or two, while the browser check runs. Source runs have no version to compare.
   const update =
     buildInfo.version === 'dev' ? undefined : publishedTags().then((tags) => updateCheck(buildInfo.version, tags));
@@ -71,7 +71,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
       name: 'resources',
       status: 'error',
       message: '安装资源缺失',
-      nextAction: '重新安装完整 CVSlate tgz',
+      nextAction: '重新安装完整的履栗 tgz',
     });
   }
   // Playwright is loaded on demand: it is many files, and most CLI commands never launch a browser.
@@ -84,7 +84,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
       name: 'chromium',
       status: 'error',
       message: '没有可用的 Chromium、Chrome 或 Edge',
-      nextAction: '执行 cvslate setup，或安装 Chrome / Edge；Linux 还需安装浏览器系统依赖',
+      nextAction: '执行 lulicv setup，或安装 Chrome / Edge；Linux 还需安装浏览器系统依赖',
     });
   }
   // Without a location only the installation is checked. A directory that cannot be read goes on to the
@@ -96,7 +96,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
         name: 'workspace',
         status: 'error',
         message: `找不到选定的工作区 ${workspace}`,
-        nextAction: '可能被移动了，或者所在的磁盘没有连接；要改用别的位置，执行 cvslate workspace <directory>',
+        nextAction: '可能被移动了，或者所在的磁盘没有连接；要改用别的位置，执行 lulicv workspace <directory>',
       });
     else
       checks.push({ name: 'workspace', status: 'ok', message: `工作区 ${workspace} 还没有建，第一次使用时自动创建` });
@@ -108,14 +108,14 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
           name: 'lock',
           status: 'warning',
           message: `工作区锁残留：记录的 Bridge 进程 ${owner.pid} 已退出`,
-          nextAction: '下一条需要 Bridge 的命令（如 cvslate tree）会自动清理；也可执行 cvslate unlock',
+          nextAction: '下一条需要 Bridge 的命令（如 lulicv tree）会自动清理；也可执行 lulicv unlock',
         });
     } catch {
       checks.push({
         name: 'lock',
         status: 'error',
         message: '工作区锁记录损坏',
-        nextAction: '确认没有 Bridge 运行后，按恢复文档人工检查 .cvslate/lock',
+        nextAction: '确认没有 Bridge 运行后，按恢复文档人工检查 .lulicv/lock',
       });
     }
     try {
@@ -125,7 +125,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
       checks.push({
         name: 'workspace',
         status: 'error',
-        message: `工作区 ${workspace} 的配置文件 cvslate.json 无效`,
+        message: `工作区 ${workspace} 的配置文件 lulicv.json 无效`,
         nextAction: '按恢复文档检查这个文件，或从备份恢复',
       });
     }
@@ -142,7 +142,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
           name: 'bridge-files',
           status: 'error',
           message: 'Bridge 正在运行，但已无法读取安装文件（常见于启动它的 agent 会话结束后）；排版检查和导出会失败',
-          nextAction: '在当前会话执行 cvslate stop；下一条命令会重新启动 Bridge',
+          nextAction: '在当前会话执行 lulicv stop；下一条命令会重新启动 Bridge',
         });
       // A Bridge started before a rebuild or reinstall keeps serving its own build until restarted.
       if (build.version !== buildInfo.version || build.commit !== buildInfo.commit)
@@ -150,7 +150,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
           name: 'bridge',
           status: 'warning',
           message: `运行中的 Bridge 是 ${buildLabel(build)}，与当前 CLI ${buildLabel()} 不一致`,
-          nextAction: '执行 cvslate stop；下一条命令会用当前构建重新启动 Bridge',
+          nextAction: '执行 lulicv stop；下一条命令会用当前构建重新启动 Bridge',
         });
       else
         checks.push({
@@ -167,7 +167,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
           name: 'bridge',
           status: 'warning',
           message: 'Bridge 连接信息无效',
-          nextAction: '执行 cvslate stop 后重试；仍失败按恢复文档检查 .cvslate/',
+          nextAction: '执行 lulicv stop 后重试；仍失败按恢复文档检查 .lulicv/',
         });
     }
   }
@@ -185,7 +185,7 @@ export async function doctor(location?: WorkspaceLocation, installedRoot = rootA
 // A preview is offered the newest preview or release; a release only newer releases. Updating stays the user's choice.
 export function updateCheck(current: string, tags: Record<string, unknown> | undefined): Diagnostic {
   if (!tags)
-    return { name: 'update', status: 'ok', message: '没能查询新版本（离线，或 npm 源上还没有 cvslate），不影响使用' };
+    return { name: 'update', status: 'ok', message: '没能查询新版本（离线，或 npm 源上还没有 lulicv），不影响使用' };
   const newest = [tags.latest, current.includes('-') ? tags.next : undefined]
     .filter(isRelease)
     .sort(compareVersions)
@@ -195,7 +195,7 @@ export function updateCheck(current: string, tags: Record<string, unknown> | und
   return {
     name: 'update',
     status: 'warning',
-    message: `CVSlate ${newest} 已发布，当前是 ${current}`,
+    message: `履栗 ${newest} 已发布，当前是 ${current}`,
     nextAction: '告诉用户有新版本，由用户决定是否更新；更新方法见 Skill 的 references/install.md 中 Updating 一节',
   };
 }
@@ -222,9 +222,9 @@ function npm(args: string[], node: string, timeout: number): Promise<string | un
   });
 }
 export const npmRegistry = (node = process.execPath) => npm(['config', 'get', 'registry'], node, 30000);
-// @arilabo/cvslate's dist-tags on the user's registry; offline, or not published there, gives undefined.
+// @arilabo/lulicv's dist-tags on the user's registry; offline, or not published there, gives undefined.
 export async function publishedTags(node = process.execPath): Promise<Record<string, unknown> | undefined> {
-  const output = await npm(['view', '@arilabo/cvslate', 'dist-tags', '--json'], node, 15000);
+  const output = await npm(['view', '@arilabo/lulicv', 'dist-tags', '--json'], node, 15000);
   try {
     const tags = output && JSON.parse(output);
     return tags && typeof tags === 'object' && !Array.isArray(tags) ? tags : undefined;
@@ -289,7 +289,7 @@ export async function setupChromium(
         reject(
           new ResumeError(
             'STORAGE_FAILED',
-            `Chromium 安装失败；检查网络、磁盘与权限后重试 cvslate setup，或安装 Chrome / Edge${hint}`,
+            `Chromium 安装失败；检查网络、磁盘与权限后重试 lulicv setup，或安装 Chrome / Edge${hint}`,
           ),
         );
     });

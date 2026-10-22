@@ -26,8 +26,8 @@ if (!install) {
       version
         ? {
             code: 'RUNTIME_MISSING',
-            message: `CVSlate ${version} 运行时未安装${present.length ? `；本机已有 ${present.join('、')}，与这个 Skill 版本不一致` : ''}`,
-            nextAction: `先告诉用户要安装什么（见 references/install.md），再运行 node "${installer}"，从用户的 npm 源安装 @arilabo/cvslate@${version} 后重试；用户提供了 arilabo-cvslate-${version}.tgz 时改用 node "${installer}" --package "<tgz 路径>"`,
+            message: `履栗 ${version} 运行时未安装${present.length ? `；本机已有 ${present.join('、')}，与这个 Skill 版本不一致` : ''}`,
+            nextAction: `先告诉用户要安装什么（见 references/install.md），再运行 node "${installer}"，从用户的 npm 源安装 @arilabo/lulicv@${version} 后重试；用户提供了 arilabo-lulicv-${version}.tgz 时改用 node "${installer}" --package "<tgz 路径>"`,
           }
         : {
             code: 'SKILL_INCOMPLETE',
@@ -47,7 +47,7 @@ if (!install) {
   const child = spawn(
     node,
     [
-      path.join(directory, 'app', 'node_modules', '@arilabo', 'cvslate', 'agent-dist', mcp ? 'mcp.mjs' : 'cli.mjs'),
+      path.join(directory, 'app', 'node_modules', '@arilabo', 'lulicv', 'agent-dist', mcp ? 'mcp.mjs' : 'cli.mjs'),
       ...args,
     ],
     { stdio: 'inherit', shell: false },

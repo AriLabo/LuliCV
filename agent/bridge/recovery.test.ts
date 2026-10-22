@@ -34,11 +34,11 @@ test('backup restore refuses an active Bridge and invalid backups, preserves sta
     await repository.close();
   }
   try {
-    const before = await readFile(path.join(root, 'cvslate.db'));
+    const before = await readFile(path.join(root, 'lulicv.db'));
     const invalid = path.join(root, 'invalid.db');
     await writeFile(invalid, 'broken database');
     await expect(restoreWorkspace(root, invalid)).rejects.toBeDefined();
-    expect(await readFile(path.join(root, 'cvslate.db'))).toEqual(before);
+    expect(await readFile(path.join(root, 'lulicv.db'))).toEqual(before);
     expect((await restoreWorkspace(root, backup)).restored).toBe(true);
     const restored = await SqliteRepository.open(root);
     const service2 = new ResumeService(restored, createResumeRecord);
@@ -48,7 +48,7 @@ test('backup restore refuses an active Bridge and invalid backups, preserves sta
     } finally {
       await restored.close();
     }
-    await writeFile(path.join(root, '.cvslate/restore-pending.json'), '{}');
+    await writeFile(path.join(root, '.lulicv/restore-pending.json'), '{}');
     await expect(SqliteRepository.open(root)).rejects.toThrow('恢复未完成');
     await restoreWorkspace(root, backup);
     const resumed = await SqliteRepository.open(root);

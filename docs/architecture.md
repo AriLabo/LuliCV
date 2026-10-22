@@ -1,6 +1,6 @@
 # Resume Workspace 架构
 
-CVSlate 是 Human + Agent 共用的中文简历工作区。ResumeData v1 是公开 JSON 内容协议；Appearance 是 Theme、密度和排版状态。完整 ResumeDocument 增加 documentVersion 和 revision，包含名称、内容、Appearance、ID 和时间戳，以及可选的投递目标 target 与复制来源 source（见 [resume-schema](resume-schema.md)）。
+履栗是 Human + Agent 共用的中文简历工作区。ResumeData v1 是公开 JSON 内容协议；Appearance 是 Theme、密度和排版状态。完整 ResumeDocument 增加 documentVersion 和 revision，包含名称、内容、Appearance、ID 和时间戳，以及可选的投递目标 target 与复制来源 source（见 [resume-schema](resume-schema.md)）。
 
 ```text
 Browser Editor → ResumeService → BrowserRepository → IndexedDB
@@ -20,7 +20,7 @@ src/studio 保留编辑器和逐文档状态机：committed、draft、in-flight�
 
 agent/bridge/sqlite-repository.ts 是 Node-only adapter。数据库表为 workspace_meta、resumes、resume_revisions、mutations；完整 JSON snapshot 不拆成经历、bullet、教育等关系表。head、snapshot、receipt 同一 BEGIN IMMEDIATE 事务提交；receipt 用请求 fingerprint 校验并引用 immutable revision，不重复保存文档。删除持久保存 tombstone，ID 不复用。来源由 Bridge 凭证赋值，当前区分 human/agent/system/import，不宣称验证 Agent 的具体供应商身份。
 
-数据库 schema 版本与内容 schema 分离。新数据库事务建表，过新的数据库拒绝打开。运行时要求 Node 自带 SQLite 3.51.3+（该版本包含 WAL-reset 修复；Node 22.22.3+、24.15+、26+ 满足），只检查 SQLite 版本，foreign_keys ON、WAL、synchronous FULL、有限 busy timeout。Workspace 进程锁保留，SQLite 事务锁不是 Bridge singleton。备份与离线恢复见 Skill 的 [recovery.md](../skills/cvslate/references/recovery.md)。
+数据库 schema 版本与内容 schema 分离。新数据库事务建表，过新的数据库拒绝打开。运行时要求 Node 自带 SQLite 3.51.3+（该版本包含 WAL-reset 修复；Node 22.22.3+、24.15+、26+ 满足），只检查 SQLite 版本，foreign_keys ON、WAL、synchronous FULL、有限 busy timeout。Workspace 进程锁保留，SQLite 事务锁不是 Bridge singleton。备份与离线恢复见 Skill 的 [recovery.md](../skills/lulicv/references/recovery.md)。
 
 SQLite 保存每份简历的所有版本，网页的修订记录可以查看历史版本、比较差异、撤销和重做。照片仍为本地 data URL；Browser/Workspace 不双写。无任意文件手改同步、自动合并、Hosted、ATS scoring或内置 AI。本地 stdio MCP 和 CLI 一样，Bridge 没运行时在后台启动一个，自己只通过 HTTP 调用 Bridge，不成为第二个数据库写者；工具与配置见 [mcp.md](mcp.md)。
 

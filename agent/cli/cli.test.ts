@@ -230,7 +230,7 @@ it('CLI starts and stops its daemon and backs up the SQLite workspace', async ()
     pid = started.pid;
     expect(started.url).toMatch(/^http:\/\/127\.0\.0\.1:/);
     expect(pid).not.toBe(process.pid);
-    const runtime = JSON.parse(await readFile(path.join(root, '.cvslate/runtime.json'), 'utf8'));
+    const runtime = JSON.parse(await readFile(path.join(root, '.lulicv/runtime.json'), 'utf8'));
     const created = await fetch(runtime.origin + '/api/resumes', {
       method: 'POST',
       headers: { Authorization: `Bearer ${runtime.token}`, 'Content-Type': 'application/json' },
@@ -241,12 +241,12 @@ it('CLI starts and stops its daemon and backs up the SQLite workspace', async ()
     expect(JSON.parse((await run('get', document.id)).stdout).name).toBe('岗位版');
     const output = path.join(root, 'backup.db');
     expect(JSON.parse((await run('backup', '--output', output)).stdout).output).toBe(await realpath(output));
-    await expect(run('backup', '--output', path.join(root, 'cvslate.db'))).rejects.toMatchObject({ code: 1 });
+    await expect(run('backup', '--output', path.join(root, 'lulicv.db'))).rejects.toMatchObject({ code: 1 });
     expect(JSON.parse((await run('stop')).stdout).pid).toBe(pid);
     await expect
       .poll(async () => {
         try {
-          await readFile(path.join(root, '.cvslate/runtime.json'));
+          await readFile(path.join(root, '.lulicv/runtime.json'));
           return false;
         } catch (error) {
           return (error as NodeJS.ErrnoException).code === 'ENOENT';
@@ -274,7 +274,7 @@ it('stop does not report success between runtime removal and lock cleanup', asyn
   await initializeWorkspace(root);
   const { readFile, symlink } = await import('node:fs/promises');
   const { createServer } = await import('node:http');
-  const workspaceId = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8')).workspaceId;
+  const workspaceId = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8')).workspaceId;
   const binary = path.join(root, 'cli.mjs');
   await build({
     entryPoints: ['agent/cli/index.ts'],
@@ -291,9 +291,9 @@ it('stop does not report success between runtime removal and lock cleanup', asyn
     path.join(root, 'node_modules'),
     process.platform === 'win32' ? 'junction' : 'dir',
   );
-  const lock = path.join(root, '.cvslate/lock');
+  const lock = path.join(root, '.lulicv/lock');
   await mkdir(lock);
-  const runtimeFile = path.join(root, '.cvslate/runtime.json');
+  const runtimeFile = path.join(root, '.lulicv/runtime.json');
   let cleanup: Promise<void> | undefined;
   const server = createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
@@ -560,7 +560,7 @@ it('CLI and MCP exports in privacy mode wait for the person and return only the 
       message: 'PDF 已交给用户的浏览器下载，共 2 页；用户没收到文件（比如在保存对话框里取消了）可以再请求一次',
       note: '隐私模式下 PDF 由用户的浏览器下载，没有写入 --output',
     });
-    expect(exported.stderr).toContain('没有打开的 CVSlate 网页');
+    expect(exported.stderr).toContain('没有打开的履栗网页');
     const [declined] = await Promise.allSettled([
       execute(process.execPath, [cli, 'export', document.id, '--revision', String(revision), '--workspace', root]),
       answer('decline'),
@@ -629,10 +629,10 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
       const reported = JSON.parse(failure!.stderr.trim().split('\n').at(-1)!);
       expect(reported).toMatchObject({
         code: 'STORAGE_FAILED',
-        message: expect.stringMatching(/^Bridge 启动失败：本地运行环境出错：.+（完整日志见 \.cvslate\/bridge\.log）$/),
+        message: expect.stringMatching(/^Bridge 启动失败：本地运行环境出错：.+（完整日志见 \.lulicv\/bridge\.log）$/),
       });
       const logged = JSON.parse(
-        (await readFile(path.join(root, '.cvslate/bridge.log'), 'utf8')).trim().split('\n').at(-1)!,
+        (await readFile(path.join(root, '.lulicv/bridge.log'), 'utf8')).trim().split('\n').at(-1)!,
       );
       expect(logged).toMatchObject({
         code: 'STORAGE_FAILED',
@@ -640,7 +640,7 @@ it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
       });
       expect(reported.message).toContain(logged.message);
       // Neither carries a path (which would include the user name) or a token.
-      for (const text of [failure!.stderr, await readFile(path.join(root, '.cvslate/bridge.log'), 'utf8')]) {
+      for (const text of [failure!.stderr, await readFile(path.join(root, '.lulicv/bridge.log'), 'utf8')]) {
         expect(text).not.toContain(base);
         expect(text).not.toContain(tmpdir());
         expect(text).not.toMatch(/[0-9a-f]{32}/);

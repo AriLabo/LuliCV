@@ -40,7 +40,7 @@ async function guarded(action: () => Promise<Record<string, unknown>>, category:
 }
 /** `cli` is the CLI entry the Bridge is started from when none is running. */
 export function createMcpServer(root: string, workspaceId: string, cli: string) {
-  const server = new McpServer({ name: 'cvslate', version: buildInfo.version });
+  const server = new McpServer({ name: 'lulicv', version: buildInfo.version });
   const bridge = async () => (await ensureBridge(root, cli, { expectedWorkspaceId: workspaceId })).runtime;
   const request = async (route: string, method = 'GET', value?: unknown) =>
     bridgeRequest(await bridge(), route, method, value);

@@ -54,7 +54,7 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 const help =
-  'cvslate version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
+  'lulicv version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
   themeHelp +
   '\nlist / import / duplicate / patch 加 --quiet 只输出 id、名称、revision 等摘要，get 加 --quiet 省略 JD 原文';
 // Flags each command accepts beyond --workspace / --help; anything else is an error rather than silently ignored.
@@ -412,13 +412,13 @@ async function main() {
         break;
       }
       try {
-        const current = JSON.parse(await readFile(path.join(root, '.cvslate/runtime.json'), 'utf8')) as Runtime;
+        const current = JSON.parse(await readFile(path.join(root, '.lulicv/runtime.json'), 'utf8')) as Runtime;
         if (current.pid !== runtime.pid || current.token !== runtime.token) break;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
         // Runtime is removed before lock cleanup; stop must wait for both.
         try {
-          await lstat(path.join(root, '.cvslate/lock'));
+          await lstat(path.join(root, '.lulicv/lock'));
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code === 'ENOENT') break;
           throw error;
@@ -427,7 +427,7 @@ async function main() {
       if (Date.now() >= deadline)
         throw new ResumeError(
           'STORAGE_FAILED',
-          `Bridge 进程 ${runtime.pid} 收到关闭请求后 45 秒仍在运行；检查该进程和 .cvslate/bridge.log，不自动强杀`,
+          `Bridge 进程 ${runtime.pid} 收到关闭请求后 45 秒仍在运行；检查该进程和 .lulicv/bridge.log，不自动强杀`,
         );
       await new Promise((resolve) => setTimeout(resolve, 100));
     }

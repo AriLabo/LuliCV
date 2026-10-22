@@ -5,9 +5,9 @@ Set this up only when the user asks to connect a client through MCP; the Skill a
 ```json
 {
   "mcpServers": {
-    "cvslate": {
+    "lulicv": {
       "command": "node",
-      "args": ["<absolute-skill-dir>/scripts/cvslate.mjs", "mcp"]
+      "args": ["<absolute-skill-dir>/scripts/lulicv.mjs", "mcp"]
     }
   }
 }

@@ -11,14 +11,14 @@ The skeleton is the same for every theme, so pagination, links and exported text
 
 ## Workflow
 
-1. `cvslate theme new <id> --from <standard|editorial|minimal> --name <中文名> --output <directory>` copies a built-in theme into a new folder. Start from the closest one and change as little as needed. Nothing is installed yet.
+1. `lulicv theme new <id> --from <standard|editorial|minimal> --name <中文名> --output <directory>` copies a built-in theme into a new folder. Start from the closest one and change as little as needed. Nothing is installed yet.
 2. Edit `theme.css` (and the manifest's presets or settings).
-3. `cvslate theme check <directory> --images <directory>` checks the package, then lays out four fictitious samples (one page, two pages, with photo, long mixed Chinese–English text) with the real Renderer and writes page images. Rendering the samples uses the workspace's Bridge, started if needed. Exit 1 means `errors` or a sample with `issues`; also read `warnings` (unknown classes or variables, hard-coded colours, a sample longer than expected).
+3. `lulicv theme check <directory> --images <directory>` checks the package, then lays out four fictitious samples (one page, two pages, with photo, long mixed Chinese–English text) with the real Renderer and writes page images. Rendering the samples uses the workspace's Bridge, started if needed. Exit 1 means `errors` or a sample with `issues`; also read `warnings` (unknown classes or variables, hard-coded colours, a sample longer than expected).
 4. Look at every image. Repeat 2–3 until `passed` is true and the pages look right.
-5. Show the user the images, then `cvslate theme install <directory>`. Installing the same id again replaces it; the editor picks it up without a reload.
-6. Apply it with `cvslate theme use <resume id> <theme id>`; `cvslate themes` lists installed themes with `source: "installed"`.
+5. Show the user the images, then `lulicv theme install <directory>`. Installing the same id again replaces it; the editor picks it up without a reload.
+6. Apply it with `lulicv theme use <resume id> <theme id>`; `lulicv themes` lists installed themes with `source: "installed"`.
 
-`cvslate theme remove <id>` uninstalls a theme. Resumes that still use it keep the id, render with 标准 and are listed in `usedBy`; reinstalling restores them. Replaced and removed versions are kept in the workspace trash. Workspace backups cover resumes only, not installed themes: keep the theme folder.
+`lulicv theme remove <id>` uninstalls a theme. Resumes that still use it keep the id, render with 标准 and are listed in `usedBy`; reinstalling restores them. Replaced and removed versions are kept in the workspace trash. Workspace backups cover resumes only, not installed themes: keep the theme folder.
 
 The CSS may not load anything: `@import`, `@font-face`, remote `url()` and similar are rejected. Images are limited to small inline `data:image/svg+xml` or `data:image/png` URLs; fonts are the built-in ones (思源黑体, MiSans, 霞鹜新晰黑) chosen through presets.
 

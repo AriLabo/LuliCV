@@ -40,7 +40,7 @@ export function EmptyWorkspace({
   return (
     <div className="app-shell">
       <header className="topbar topbar--empty studio-chrome">
-        <div className="brand" role="img" aria-label="CVSlate">
+        <div className="brand" role="img" aria-label="LuliCV">
           <Wordmark accent={record.appearance.layout.accentColor} />
         </div>
       </header>

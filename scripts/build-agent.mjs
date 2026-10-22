@@ -46,7 +46,7 @@ for (const [source, name] of [
 ])
   await copyFile(source, `licenses/${name}`);
 // `vite build` ran first (see the build script) and recorded the editor bundle's files.
-const web = JSON.parse(await readFile('node_modules/.cache/cvslate/web-modules.json', 'utf8'));
+const web = JSON.parse(await readFile('node_modules/.cache/lulicv/web-modules.json', 'utf8'));
 await writeThirdPartyNotices([...bundled, ...web], 'licenses/THIRD_PARTY_NOTICES.md');
 // npm swaps only registry.npmjs.org URLs for the user's configured registry, so a dependency locked while developing
 // behind npmmirror would make every user outside China fetch it from npmmirror. Same tarballs, same integrity.

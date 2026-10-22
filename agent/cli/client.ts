@@ -6,7 +6,7 @@ import path from 'node:path';
 import { clearStaleLock } from '../bridge/workspace';
 
 export async function workspaceIdAt(root: string): Promise<string> {
-  const manifest = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
   if (
     manifest.workspaceVersion !== 1 ||
     typeof manifest.workspaceId !== 'string' ||
@@ -20,11 +20,9 @@ export async function workspaceIdAt(root: string): Promise<string> {
 const notRunning = () => new ResumeError('BRIDGE_NOT_RUNNING', '这个工作区的 Bridge 没有运行，请求没有发出');
 
 export async function runtimeAt(root: string, expectedWorkspaceId?: string): Promise<Runtime> {
-  const file = await readFile(path.join(root, '.cvslate/runtime.json'), 'utf8').catch(
-    (error: NodeJS.ErrnoException) => {
-      throw error.code === 'ENOENT' ? notRunning() : error;
-    },
-  );
+  const file = await readFile(path.join(root, '.lulicv/runtime.json'), 'utf8').catch((error: NodeJS.ErrnoException) => {
+    throw error.code === 'ENOENT' ? notRunning() : error;
+  });
   const runtime = JSON.parse(file) as Runtime;
   const url = new URL(runtime.origin);
   const workspaceId = await workspaceIdAt(root);
@@ -130,7 +128,7 @@ export async function ensureBridge(
   }
   // A Bridge that exited without cleaning up leaves its lock behind; its owner is gone, so it is safe to clear.
   const recoveredLock = await clearStaleLock(root);
-  const logFile = path.join(root, '.cvslate/bridge.log');
+  const logFile = path.join(root, '.lulicv/bridge.log');
   const log = await open(logFile, 'a', 0o600);
   let exited = false;
   try {
@@ -177,7 +175,7 @@ export async function ensureBridge(
   }
   throw new ResumeError(
     line?.includes('WORKSPACE_LOCKED') ? 'WORKSPACE_LOCKED' : 'STORAGE_FAILED',
-    `Bridge 启动失败${reason ? `：${reason.slice(0, 300)}` : ''}（完整日志见 .cvslate/bridge.log）`,
+    `Bridge 启动失败${reason ? `：${reason.slice(0, 300)}` : ''}（完整日志见 .lulicv/bridge.log）`,
   );
 }
 

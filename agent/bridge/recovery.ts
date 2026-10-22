@@ -10,7 +10,7 @@ import { SCHEMA_VERSION } from './sqlite-repository';
 /** Restore only while Bridge is stopped. Validate a copied backup before touching the existing database. */
 export async function restoreWorkspace(directory: string, input: string) {
   const root = await realpath(directory);
-  const state = path.join(root, '.cvslate');
+  const state = path.join(root, '.lulicv');
   if ((await lstat(state)).isSymbolicLink()) throw new ResumeError('VALIDATION_FAILED', '禁止符号链接工作区状态目录');
   const lock = path.join(state, 'lock');
   try {
@@ -31,7 +31,7 @@ export async function restoreWorkspace(directory: string, input: string) {
     database = new DatabaseSync(temporary, { readOnly: true });
     if (Number(database.prepare('PRAGMA user_version').get()!.user_version) !== SCHEMA_VERSION)
       throw new ResumeError('VALIDATION_FAILED', '备份数据库版本不支持');
-    const manifest = JSON.parse(await readFile(path.join(root, 'cvslate.json'), 'utf8'));
+    const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));
     if (
       database.prepare("SELECT value FROM workspace_meta WHERE key='workspace_id'").get()?.value !==
       manifest.workspaceId
@@ -57,7 +57,7 @@ export async function restoreWorkspace(directory: string, input: string) {
     if (invalidHead) throw new ResumeError('VALIDATION_FAILED', '备份 head 不一致');
     database.close();
     database = undefined;
-    const file = path.join(root, 'cvslate.db');
+    const file = path.join(root, 'lulicv.db');
     for (const suffix of ['', '-wal', '-shm']) {
       try {
         if ((await lstat(file + suffix)).isSymbolicLink())
@@ -71,7 +71,7 @@ export async function restoreWorkspace(directory: string, input: string) {
     await mkdir(previous, { mode: 0o700 });
     for (const suffix of ['', '-wal', '-shm']) {
       try {
-        await copyFile(file + suffix, path.join(previous, `cvslate.db${suffix}`));
+        await copyFile(file + suffix, path.join(previous, `lulicv.db${suffix}`));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }

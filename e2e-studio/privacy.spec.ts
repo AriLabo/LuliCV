@@ -156,7 +156,7 @@ test('people turn privacy mode on, fill the values, edit around placeholders, ex
     await page.goto(entry.url);
     // Work on the first resume.
     await page.locator('[data-resume-id]').first().waitFor();
-    await page.evaluate((id) => localStorage.setItem('cvslate:active', id), resume.id);
+    await page.evaluate((id) => localStorage.setItem('lulicv:active', id), resume.id);
     await page.reload();
     const article = page.locator('article[data-a4-page]').first();
     await expect(article).toContainText('欢迎联系张三');
@@ -408,7 +408,7 @@ test('clearing the sample mark in privacy mode puts the person’s details in pl
     const entry = (await agent('/api/preview-entry', 'POST', {})) as { url: string };
     await page.goto(entry.url);
     await page.locator('[data-resume-id]').first().waitFor();
-    await page.evaluate((id) => localStorage.setItem('cvslate:active', id), document.id);
+    await page.evaluate((id) => localStorage.setItem('lulicv:active', id), document.id);
     await page.reload();
     const article = page.locator('article[data-a4-page]').first();
     // The example's own details are fictitious, so they show as they are.
