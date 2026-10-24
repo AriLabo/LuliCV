@@ -153,6 +153,7 @@ input[type='range'] {
   list-style: none;
 }
 .history-item {
+  position: relative;
   border-left: 3px solid #d9dce1;
   border-radius: 0 8px 8px 0;
   margin: 4px 0;
@@ -178,6 +179,39 @@ input[type='range'] {
   color: #3a414c;
   font-size: 12px;
   line-height: 1.5;
+}
+/* Only on the entry under the pointer or keyboard focus; touch screens have no hover, so it always shows there. */
+.history-item__restore {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  height: 24px;
+  border: 1px solid #d9dce1;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(28, 32, 40, 0.12);
+  color: #3a414c;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+}
+.history-item:hover .history-item__restore,
+.history-item:focus-within .history-item__restore {
+  opacity: 1;
+  pointer-events: auto;
+}
+.history-item__restore:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+@media (hover: none) {
+  .history-item__restore {
+    position: static;
+    margin-top: 6px;
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .history-empty {
   margin: 12px 14px;
@@ -2147,23 +2181,24 @@ input[type='range'] {
   border-radius: var(--radius);
   padding: 0 10px 0 8px;
   background: var(--surface);
-  color: var(--ink-2);
+  color: #b4473c;
   font-size: 13px;
   white-space: nowrap;
 }
 .privacy-toggle:hover {
   background: var(--hover);
-  color: var(--ink);
+  color: #9b3a30;
 }
 .privacy-toggle.is-on {
-  border-color: #d9e1ef;
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-color: #ecc9c4;
+  background: #fbeeec;
+  color: #8f2a20;
   font-weight: 600;
 }
 .privacy-toggle.is-on:hover {
-  border-color: #b9c8e4;
-  color: var(--accent);
+  border-color: #e0b0a9;
+  background: #f8e4e1;
+  color: #8f2a20;
 }
 .privacy-editor-note {
   display: flex;

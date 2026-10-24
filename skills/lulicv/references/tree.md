@@ -25,4 +25,4 @@ When `sourceChanges` is present, `lulicv diff <id> --source` lists what changed 
 ## Placement and status
 
 - Move with a patch on `/parentId` (remove it for the top level); describe a base resume with `/purpose`. The Bridge rejects cycles, a job version as parent and a fourth level.
-- `lulicv history <id>` lists recent revisions with who made them (`human`, `agent`, …) and readable changes; `lulicv diff <id> --from <N> [--to <M>]` compares two revisions; `lulicv get <id> --revision <N>` reads one, for example to recover wording.
+- `lulicv history <id>` lists recent revisions with who made them (`human`, `agent`, …) and readable changes; `lulicv diff <id> --from <N> [--to <M>]` compares two revisions; `lulicv get <id> --revision <N>` reads one, for example to recover wording; `lulicv restore <id> --to <N> --revision <latest>` makes it the newest version again.

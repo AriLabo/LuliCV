@@ -36,12 +36,15 @@ for (const [entry, outfile] of [
   bundled.push(...Object.keys(metafile.inputs));
 }
 
-const { mkdir, copyFile, readFile, writeFile } = await import('node:fs/promises');
+const { rm, mkdir, copyFile, readFile, writeFile } = await import('node:fs/promises');
+// Start empty so a renamed or dropped license never lingers in the package.
+await rm('licenses', { recursive: true, force: true });
 await mkdir('licenses', { recursive: true });
 for (const [source, name] of [
   ['src/assets/fonts/LXGW-LICENSE.md', 'LXGW-LICENSE.md'],
   ['src/assets/fonts/THIRD_PARTY_FONTS.md', 'THIRD_PARTY_FONTS.md'],
-  ['node_modules/misans/LICENSE', 'MiSans-LICENSE'],
+  ['src/assets/fonts/MiSans-FONT-LICENSE.pdf', 'MiSans-FONT-LICENSE.pdf'],
+  ['node_modules/misans/LICENSE', 'MiSans-package-LICENSE'],
   ['node_modules/@fontsource/noto-sans-sc/LICENSE', 'NotoSansSC-LICENSE'],
 ])
   await copyFile(source, `licenses/${name}`);

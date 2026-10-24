@@ -203,6 +203,51 @@ test('简约主题使用内置字体', async ({ page }) => {
   await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('minimal-balanced-no-photo.png');
 });
 
+test('商务主题使用通栏页眉和带图标的联系方式', async ({ page }) => {
+  await ready(page);
+  await chooseTheme(page, '商务');
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator('[data-a4-page]')).toHaveCount(1);
+  await expect(page.getByText('排版检查通过')).toBeVisible();
+  const root = page.locator('.page-wrap.rs-theme--business');
+  await expect(root.locator('.rs-contact-icon').first()).toBeVisible();
+  // The band is the header's ::before, which reaches out into the page margin.
+  const [band, sheet] = await Promise.all([
+    root.locator('.rs-header').evaluate((element) => {
+      const box = element.getBoundingClientRect();
+      const scale = box.width / (element as HTMLElement).offsetWidth;
+      const style = getComputedStyle(element, '::before');
+      const left = box.left + parseFloat(style.left) * scale;
+      return { x: left, width: box.right - parseFloat(style.right) * scale - left };
+    }),
+    page.locator('[data-a4-page="1"]').boundingBox(),
+  ]);
+  expect(Math.abs(band.x - sheet!.x)).toBeLessThan(1);
+  expect(Math.abs(band.width - sheet!.width)).toBeLessThan(1);
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
+  await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('business-balanced-no-photo.png');
+});
+
+test('时间线主题把日期放在左栏', async ({ page }) => {
+  await ready(page);
+  await chooseTheme(page, '时间线');
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator('[data-a4-page]')).toHaveCount(1);
+  await expect(page.getByText('排版检查通过')).toBeVisible();
+  const head = page.locator('.page-wrap.rs-theme--timeline .rs-entry-head').first();
+  const [date, title] = await Promise.all([
+    head.locator('.rs-entry-date').boundingBox(),
+    head.locator('.rs-entry-title').boundingBox(),
+  ]);
+  expect(date!.x + date!.width).toBeLessThan(title!.x);
+  await page.locator('.preview-toolbar').evaluate((element) => {
+    (element as HTMLElement).style.display = 'none';
+  });
+  await expect(page.locator('[data-a4-page="1"]')).toHaveScreenshot('timeline-balanced-no-photo.png');
+});
+
 test('标准主题两页并且没有溢出或空白页', async ({ page }) => {
   await ready(page);
   const section = page.locator('[data-section-type="experience"]');
@@ -459,7 +504,7 @@ test('主题面板悬停只预览不保存，点击应用后可一步撤销', as
   await themeTrigger(page).click();
   const panel = page.getByRole('region', { name: '选择主题' });
   // Thumbnails render the person's own content but are not pages, so layout checks never count them.
-  await expect(panel.locator('.theme-thumb .rs-name')).toHaveText(['张三', '张三', '张三']);
+  await expect(panel.locator('.theme-thumb .rs-name')).toHaveText(Array(5).fill('张三'));
   await expect(page.locator('[data-a4-page]')).toHaveCount(1);
   await expect(panel.getByRole('button', { name: '标准', exact: true })).toHaveAttribute('aria-pressed', 'true');
 

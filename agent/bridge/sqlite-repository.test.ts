@@ -56,9 +56,10 @@ test('CAS, rollback and durable receipts survive restart and later revisions', a
     await expect(service2.patch(document.id, patch(1, 'one', 'different'))).rejects.toMatchObject({
       code: 'VALIDATION_FAILED',
     });
-    const restored = await service2.restorePrevious(document.id, { baseRevision: 3, mutationId: 'restore' });
+    const restored = await service2.restore(document.id, { baseRevision: 3, mutationId: 'restore', revision: 2 });
     expect(restored.name).toBe('A');
     expect(restored.revision).toBe(4);
+    expect((await reopened.history(document.id))[0]).toMatchObject({ revision: 4, restoredFrom: 2 });
   } finally {
     await reopened.close();
   }

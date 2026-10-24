@@ -144,11 +144,20 @@ function PrivateLabel({ tokenKey }: { tokenKey: string }) {
   );
 }
 
-/** The icon privacy mode marks things with. */
-export const LockIcon = () => (
+/** The icon privacy mode marks things with. The top-bar toggle shows it `open` while privacy mode is off and `solid` while it is on. */
+export const LockIcon = ({ variant }: { variant?: 'open' | 'solid' }) => (
   <svg viewBox="0 0 16 16" aria-hidden="true" className="lock-icon">
-    <rect x="3.25" y="7" width="9.5" height="6.75" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
-    <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" strokeWidth="1.3" />
+    {variant === 'solid' ? (
+      <rect x="3" y="6.8" width="10" height="7.2" rx="1.6" fill="currentColor" />
+    ) : (
+      <rect x="3.25" y="7" width="9.5" height="6.75" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+    )}
+    <path
+      d={variant === 'open' ? 'M5.5 7V5a2.5 2.5 0 0 1 4.9-.7' : 'M5.5 7V5a2.5 2.5 0 0 1 5 0v2'}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+    />
   </svg>
 );
 

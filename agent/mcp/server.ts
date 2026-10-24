@@ -117,11 +117,22 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
   server.registerTool(
     'get_resume',
     {
-      description: '读取真实简历、Appearance 和 revision。修改前先读取。',
+      description: '读取真实简历、Appearance 和 revision。修改前先读取。带 revision 时读取那个历史版本。',
+      inputSchema: z.strictObject({ id, revision: revision.optional() }),
+      annotations: readOnly,
+    },
+    ({ id, revision }) =>
+      guarded(async () => await (await request(`/api/resumes/${id}${revision ? `?revision=${revision}` : ''}`)).json()),
+  );
+  server.registerTool(
+    'get_resume_history',
+    {
+      description:
+        '列出一份简历的修改记录，新的在前：每个 revision 是谁改的（human、agent、import、system）、什么时候、改了哪些地方；restoredFrom 表示那次是恢复到更早的 revision。',
       inputSchema: z.strictObject({ id }),
       annotations: readOnly,
     },
-    ({ id }) => guarded(async () => await (await request(`/api/resumes/${id}`)).json()),
+    ({ id }) => guarded(async () => await (await request(`/api/resumes/${id}/history`)).json()),
   );
   server.registerTool(
     'duplicate_resume',
@@ -166,6 +177,17 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
     },
     ({ id, ...patch }) =>
       guarded(async () => await written(await request(`/api/resumes/${id}`, 'PATCH', patch)), 'write'),
+  );
+  server.registerTool(
+    'restore_resume',
+    {
+      description:
+        '把较早的 revision 恢复成最新版本（名称、内容、外观、投递目标整份回去，简历树位置不变）；之后的版本仍留在修改记录里，可以再恢复回来。只想撤掉其中一部分时，读取那个 revision 对照后用 patch_resume 改。baseRevision 是最近读取到的 revision。',
+      inputSchema: z.strictObject({ id, revision, baseRevision: revision, mutationId: id }),
+      annotations: { ...write, destructiveHint: true },
+    },
+    ({ id, ...input }) =>
+      guarded(async () => await written(await request(`/api/resumes/${id}/restore`, 'POST', input)), 'write'),
   );
   server.registerTool(
     'validate_resume',

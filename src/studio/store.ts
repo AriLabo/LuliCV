@@ -22,12 +22,23 @@ import type { ExportLogEntry, ExportRequest, PrivacyChoices, PrivacySettings } f
 import type { PrivacyPlanSummary, PrivacyState } from './privacy';
 import type { LayoutReport } from '../core/layout';
 
+/** Saves and agent commits this close together read as one change, in the history and in the notice. */
+export const GROUP_WINDOW_MS = 3 * 60 * 1000;
+
+/** The notice after an agent's change, or after a restore made here. */
 export interface AgentChange {
   resumeId: string;
   revision: number;
   text: string;
   created: boolean;
   deleted: boolean;
+  /** The revision its undo goes back to; for an agent's round of commits, the one before the round. */
+  undoTo?: number;
+  /** A restore made here: its undo reads 撤销恢复 and puts back what the restore took away. */
+  restored?: boolean;
+  /** What the agent's round changed so far, so a following commit extends the text. */
+  changes?: string[];
+  at?: number;
 }
 
 interface StudioState {
@@ -78,7 +89,8 @@ interface StudioState {
   restore: (value: unknown) => boolean;
   discardDraft: () => Promise<void>;
   saveDraftAsNew: () => Promise<void>;
-  restorePrevious: () => Promise<void>;
+  /** Makes `revision`'s content the newest version; later versions stay in the history. `notice` is shown with an undo. */
+  restoreRevision: (id: string, revision: number, notice?: string) => Promise<void>;
   /** Privacy mode as the Bridge has it; unset in browser mode. Holds no private value, only whether each is filled and its shape. */
   privacy?: PrivacyState;
   loadPrivacy: () => Promise<void>;
@@ -381,21 +393,46 @@ export const useStudioStore = create<StudioState>((set, get) => ({
                 const after = committed.get(event.resumeId);
                 const created = !known && event.revision === 1 && !event.deleted;
                 if (created && document) get().selectResume(document.id);
+                const restored = event.paths?.[0] === 'restore';
                 const changes =
                   before && after?.revision === event.revision && before.revision === event.revision - 1
-                    ? formatChanges(summarizeChanges(before, after))
-                    : '';
+                    ? summarizeChanges(before, after)
+                    : [];
+                // An agent works in many quick commits; one following straight on from the last continues its round,
+                // so the notice names the whole round and its undo goes back to before it.
+                const now = Date.now();
+                const previous = get().lastChange;
+                const round =
+                  previous &&
+                  previous.resumeId === event.resumeId &&
+                  previous.revision === event.revision - 1 &&
+                  previous.changes &&
+                  !previous.restored &&
+                  !previous.created &&
+                  !restored &&
+                  !event.deleted &&
+                  now - (previous.at ?? 0) <= GROUP_WINDOW_MS
+                    ? previous
+                    : undefined;
+                const all = round
+                  ? [...round.changes!, ...changes.filter((change) => !round.changes!.includes(change))]
+                  : changes;
                 set({
                   lastChange: {
                     resumeId: event.resumeId,
                     revision: event.revision,
                     created,
                     deleted: !!event.deleted,
+                    ...(event.deleted || created ? {} : { undoTo: round?.undoTo ?? event.revision - 1 }),
+                    ...(event.deleted || created || restored ? {} : { changes: all }),
+                    at: now,
                     text: event.deleted
                       ? 'Agent 删除了一份简历'
                       : created
                         ? `Agent 新建了「${document?.name ?? '简历'}」，已为你切换过去`
-                        : `Agent 修改了${changes || '这份简历'}`,
+                        : restored
+                          ? `Agent 恢复了较早的版本${changes.length ? `，改回了${formatChanges(changes)}` : ''}`
+                          : `Agent 修改了${formatChanges(all) || '这份简历'}`,
                   },
                 });
               });
@@ -683,20 +720,30 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   approveExport: (requestId) => bridge().approveExport(requestId),
   declineExport: (requestId) => bridge().declineExport(requestId),
   loadExportLog: async () => (await bridge().request<{ exports: ExportLogEntry[] }>('/api/export-log')).exports,
-  restorePrevious: async () => {
-    const record = active();
-    if (!record) return;
-    await flushDocument(record.id);
+  restoreRevision: async (id, revision, notice) => {
+    await flushDocument(id);
+    const head = committed.get(id)?.revision;
+    if (head === undefined) throw new ResumeError('NOT_FOUND', '这份简历已经不在了');
     const mutationId = createId('restore');
     own.add(mutationId);
     try {
-      const saved = await service.restorePrevious(record.id, {
-        baseRevision: committed.get(record.id)!.revision,
-        mutationId,
-      });
-      committed.set(record.id, saved);
-      histories.delete(record.id);
+      const saved = await service.restore(id, { baseRevision: head, mutationId, revision });
+      committed.set(id, saved);
+      histories.delete(id);
       show(saved);
+      set({
+        lastChange: notice
+          ? {
+              resumeId: id,
+              revision: saved.revision,
+              created: false,
+              deleted: false,
+              restored: true,
+              undoTo: head,
+              text: notice,
+            }
+          : undefined,
+      });
     } finally {
       own.delete(mutationId);
     }

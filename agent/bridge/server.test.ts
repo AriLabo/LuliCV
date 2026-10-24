@@ -630,6 +630,8 @@ it('installs, serves, replaces and removes workspace themes, and skips broken on
       'standard:builtin',
       'editorial:builtin',
       'minimal:builtin',
+      'business:builtin',
+      'timeline:builtin',
       'ink-demo:installed',
     ]);
     expect(await (await bridgeRequest(bridge.runtime, '/api/themes/ink-demo/theme.css')).text()).toContain(

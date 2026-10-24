@@ -4,8 +4,14 @@ export interface MutationIdentity {
   baseRevision: number;
   mutationId: string;
   fingerprint: string;
+  /** Set by a restore: the revision it brings back, so the history can say so. */
+  restoredFrom?: number;
 }
-export type Transform = (current: ResumeDocument, previous?: ResumeDocument) => ResumeDocument | null;
+/** `revisionAt` reads a past revision of the same resume inside the write's transaction. */
+export type Transform = (
+  current: ResumeDocument,
+  revisionAt: (revision: number) => ResumeDocument,
+) => ResumeDocument | null;
 export interface ResumeRepository {
   list(): Promise<ResumeDocument[]>;
   get(id: string): Promise<ResumeDocument>;

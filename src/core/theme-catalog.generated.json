@@ -213,5 +213,110 @@
         ]
       }
     ]
+  },
+  {
+    "id": "business",
+    "name": "商务",
+    "description": "强调色通栏页眉和斜角色块标题，醒目稳重，适合销售、运营和管理岗位。",
+    "version": "1.0.0",
+    "engine": 1,
+    "skeleton": "single",
+    "author": "LuliCV",
+    "license": "MIT",
+    "tags": [
+      "商务",
+      "醒目",
+      "社招"
+    ],
+    "traits": {
+      "photo": true,
+      "atsFriendly": true
+    },
+    "defaults": {
+      "pageMarginMm": 15,
+      "baseFontPt": 9.8,
+      "lineHeight": 1.45,
+      "sectionSpacingPt": 8,
+      "photoEnabled": false
+    },
+    "presets": [
+      {
+        "id": "navy",
+        "name": "藏蓝",
+        "accentColor": "#274472"
+      },
+      {
+        "id": "wine",
+        "name": "酒红",
+        "accentColor": "#7a2e35"
+      },
+      {
+        "id": "pine",
+        "name": "松绿",
+        "accentColor": "#1f5a4c"
+      }
+    ],
+    "settings": [
+      {
+        "id": "contacts",
+        "label": "联系方式",
+        "type": "select",
+        "default": "icons",
+        "options": [
+          {
+            "value": "icons",
+            "label": "带图标"
+          },
+          {
+            "value": "plain",
+            "label": "纯文字"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "timeline",
+    "name": "时间线",
+    "description": "日期放在左栏，一条细线串起每段经历，时间顺序一目了然，适合经历连贯的社招简历。",
+    "version": "1.0.0",
+    "engine": 1,
+    "skeleton": "single",
+    "author": "LuliCV",
+    "license": "MIT",
+    "tags": [
+      "时间线",
+      "清晰",
+      "社招"
+    ],
+    "traits": {
+      "photo": true,
+      "atsFriendly": true
+    },
+    "defaults": {
+      "pageMarginMm": 15,
+      "baseFontPt": 9.8,
+      "lineHeight": 1.45,
+      "sectionSpacingPt": 8,
+      "photoEnabled": false
+    },
+    "presets": [
+      {
+        "id": "teal",
+        "name": "黛青",
+        "accentColor": "#2f5d62"
+      },
+      {
+        "id": "navy",
+        "name": "藏蓝",
+        "accentColor": "#274472"
+      },
+      {
+        "id": "ochre",
+        "name": "赭石",
+        "accentColor": "#9a5b2b"
+      }
+    ],
+    "settings": []
   }
 ]

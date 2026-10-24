@@ -78,10 +78,14 @@ export function completeMutation(
   current: ResumeDocument,
   expected: number,
   transform: Transform,
-  previous?: ResumeDocument,
+  /** Omitted by storage that keeps no past revisions. */
+  revisionAt?: (revision: number) => ResumeDocument,
 ): ResumeDocument | null {
   if (current.revision !== expected) conflict(current.revision);
-  const result = transform(structuredClone(current), previous && structuredClone(previous));
+  const result = transform(structuredClone(current), (revision) => {
+    if (!revisionAt) throw new ResumeError('NOT_FOUND', '这里没有保存历史版本');
+    return structuredClone(revisionAt(revision));
+  });
   if (!result) return null;
   try {
     return normalizeDocument({

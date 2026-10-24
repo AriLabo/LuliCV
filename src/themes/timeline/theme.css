@@ -1,0 +1,183 @@
+/* 时间线 · engine 1. Rules are nested inside .rs-theme--timeline when loaded; settings appear as &.rs-set-… on the root. */
+color: #202124;
+font-family: var(
+  --rs-font-family,
+  'Noto Sans SC',
+  -apple-system,
+  BlinkMacSystemFont,
+  'PingFang SC',
+  'Microsoft YaHei',
+  sans-serif
+);
+font-size: var(--rs-font-size);
+line-height: var(--rs-line-height);
+/* Dates sit left of the axis; everything else starts at the indent. */
+--axis: 92pt;
+--indent: 106pt;
+
+.rs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18pt;
+  padding-bottom: 10pt;
+}
+.rs-identity {
+  min-width: 0;
+  flex: 1;
+}
+.rs-name {
+  margin: 0;
+  color: #1d1f23;
+  font-size: 25pt;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.rs-headline {
+  margin: 5pt 0 0;
+  color: var(--rs-accent);
+  font-size: 10.5pt;
+  font-weight: 500;
+}
+.rs-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2pt 10pt;
+  margin-top: 7pt;
+  color: #535861;
+  font-size: 8.5pt;
+}
+.rs-details {
+  margin-top: 3pt;
+  color: #535861;
+  font-size: 8.5pt;
+}
+.rs-photo {
+  width: 22mm;
+  height: 29mm;
+  flex: 0 0 auto;
+  border-radius: 2pt;
+  object-fit: cover;
+}
+
+.rs-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8pt;
+  padding-top: var(--rs-section-space);
+  padding-bottom: 4pt;
+}
+.rs-section-title h2 {
+  margin: 0;
+  color: var(--rs-accent);
+  font-size: 13pt;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.rs-section-rule {
+  height: 0.6pt;
+  flex: 1;
+  background: #c9ced6;
+}
+
+/*
+ * Each block draws its own piece of the axis, so the line runs unbroken through an entry and stops where the page
+ * breaks. The date column is part of the entry header's grid, so a long date makes the header taller instead of
+ * running into the next block.
+ */
+.rs-entry-head,
+.rs-description,
+.rs-bullet {
+  position: relative;
+}
+.rs-entry-head::before,
+.rs-description::before,
+.rs-bullet::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--axis);
+  border-left: 1pt solid #d3d7de;
+  content: '';
+}
+.rs-entry-head::after {
+  position: absolute;
+  top: calc(2pt + 0.32em);
+  left: calc(var(--axis) - 3.2pt);
+  width: 5.4pt;
+  height: 5.4pt;
+  border: 1.2pt solid var(--rs-accent);
+  border-radius: 50%;
+  background: #fff;
+  content: '';
+}
+.rs-entry-head {
+  display: grid;
+  grid-template-columns: calc(var(--axis) - 10pt) minmax(0, 1fr);
+  column-gap: calc(var(--indent) - var(--axis) + 10pt);
+  padding-top: 1pt;
+  padding-bottom: 2pt;
+}
+.rs-entry-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  grid-column: 2;
+  grid-row: 1;
+}
+.rs-entry-title {
+  font-size: 10.8pt;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.rs-entry-subtitle {
+  color: #4d5259;
+  font-size: 9pt;
+}
+.rs-entry-meta {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 1pt;
+  grid-column: 1;
+  grid-row: 1;
+  color: #626771;
+  font-size: 8.4pt;
+  font-variant-numeric: tabular-nums;
+}
+.rs-entry-date {
+  color: var(--rs-accent);
+  font-weight: 600;
+}
+
+.rs-summary,
+.rs-description {
+  padding-bottom: 3pt;
+  color: #41464d;
+}
+.rs-summary,
+.rs-description,
+.rs-bullet {
+  padding-left: var(--indent);
+}
+.rs-bullet {
+  display: flex;
+  gap: 5pt;
+  padding-bottom: 1.7pt;
+}
+.rs-bullet-mark {
+  color: #8a9099;
+}
+.rs-bullet p {
+  flex: 1;
+}
+.rs-skill {
+  display: grid;
+  grid-template-columns: calc(var(--indent) - 10pt) 1fr;
+  gap: 10pt;
+  padding-bottom: 2pt;
+}
+.rs-skill-category {
+  color: var(--rs-accent);
+  font-weight: 700;
+}

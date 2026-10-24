@@ -17,7 +17,7 @@ import { baseAppearance, createResumeRecord } from './defaults';
 
 describe('theme packages', () => {
   it('built-in themes are valid packages with safe stylesheets', () => {
-    expect(themeCatalog.map((theme) => theme.id)).toEqual(['standard', 'editorial', 'minimal']);
+    expect(themeCatalog.map((theme) => theme.id)).toEqual(['standard', 'editorial', 'minimal', 'business', 'timeline']);
     for (const manifest of themeCatalog) {
       expect(validateThemeManifest(manifest)).toEqual([]);
       const css = readFileSync(`src/themes/${manifest.id}/theme.css`, 'utf8');

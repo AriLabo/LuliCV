@@ -54,14 +54,15 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 const help =
-  'lulicv version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
+  'lulicv version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | restore <id> --to N --revision M（把 rN 的内容恢复成最新版本，M 是最近读取到的 revision；之后的版本留在修改记录里） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
   themeHelp +
-  '\nlist / import / duplicate / patch 加 --quiet 只输出 id、名称、revision 等摘要，get 加 --quiet 省略 JD 原文';
+  '\nlist / import / duplicate / patch / restore 加 --quiet 只输出 id、名称、revision 等摘要，get 加 --quiet 省略 JD 原文';
 // Flags each command accepts beyond --workspace / --help; anything else is an error rather than silently ignored.
 const commandFlags: Record<string, string[]> = {
   version: [],
   history: [],
   delete: ['revision', 'mutation-id'],
+  restore: ['to', 'revision', 'mutation-id', 'quiet'],
   doctor: [],
   setup: [],
   themes: [],
@@ -542,7 +543,14 @@ async function main() {
     const [document, { revisions }] = await Promise.all([
       (await bridgeRequest(runtime, route)).json() as Promise<ResumeDocument>,
       (await bridgeRequest(runtime, route + '/history')).json() as Promise<{
-        revisions: Array<{ revision: number; source: string; createdAt: number; created: boolean; changes: string[] }>;
+        revisions: Array<{
+          revision: number;
+          source: string;
+          createdAt: number;
+          created: boolean;
+          changes: string[];
+          restoredFrom?: number;
+        }>;
       }>,
     ]);
     process.stdout.write(
@@ -564,6 +572,18 @@ async function main() {
     response = await bridgeRequest(runtime, route, 'DELETE', {
       baseRevision: revision,
       mutationId: values['mutation-id'] ?? randomUUID(),
+    });
+  } else if (command === 'restore') {
+    // Like delete, it needs the revision the agent read, so it never throws away a version it has not seen.
+    const [to, revision] = [Number(values.to), Number(values.revision)];
+    if (!Number.isSafeInteger(to) || to < 1)
+      throw new ResumeError('VALIDATION_FAILED', 'restore 需要 --to（要恢复的 revision）');
+    if (!Number.isSafeInteger(revision) || revision < 1)
+      throw new ResumeError('VALIDATION_FAILED', 'restore 需要 --revision（最近读取到的 revision）');
+    response = await bridgeRequest(runtime, route + '/restore', 'POST', {
+      baseRevision: revision,
+      mutationId: values['mutation-id'] ?? randomUUID(),
+      revision: to,
     });
   } else if (command === 'diff' && (values.from || values.to)) {
     if (!values.from || values.source || values.against)
@@ -682,7 +702,7 @@ async function main() {
   } else throw new ResumeError('VALIDATION_FAILED', help);
   const result = await response.json();
   // After a write, say whether the person is watching in the editor, so the agent can open it for them.
-  const written = command === 'patch' || command === 'duplicate';
+  const written = command === 'patch' || command === 'duplicate' || command === 'restore';
   process.stdout.write(
     JSON.stringify(
       written
@@ -700,7 +720,7 @@ main().catch((error) => {
         error,
         command === 'export'
           ? 'export'
-          : ['patch', 'import', 'duplicate', 'delete'].includes(command)
+          : ['patch', 'import', 'duplicate', 'delete', 'restore'].includes(command)
             ? 'write'
             : 'read',
       ),

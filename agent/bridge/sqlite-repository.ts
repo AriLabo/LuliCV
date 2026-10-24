@@ -46,6 +46,8 @@ export interface RevisionSummary {
   paths: string[];
   created: boolean;
   changes: string[];
+  /** Set when this revision restored an earlier one. */
+  restoredFrom?: number;
 }
 export interface CommitEvent {
   resumeId: string;
@@ -168,6 +170,11 @@ export class SqliteRepository implements ResumeRepository {
       }
       const workspaceId = database.prepare("SELECT value FROM workspace_meta WHERE key='workspace_id'").get()?.value;
       if (workspaceId !== manifest.workspaceId) throw new ResumeError('VALIDATION_FAILED', '数据库与工作区 ID 不匹配');
+      // Added after schema 1 shipped; a workspace without it gains it here, and an older runtime just never reads it.
+      database.exec(`CREATE TABLE IF NOT EXISTS restores (
+        resume_id TEXT NOT NULL, revision INTEGER NOT NULL, restored_from INTEGER NOT NULL,
+        PRIMARY KEY(resume_id, revision), FOREIGN KEY(resume_id,revision) REFERENCES resume_revisions(resume_id,revision)
+      )`);
       const mode = database.prepare('PRAGMA journal_mode=WAL').get()!.journal_mode;
       if (mode !== 'wal') throw new ResumeError('STORAGE_FAILED', '无法启用 SQLite WAL');
       const repository = new SqliteRepository(root, database);
@@ -292,13 +299,16 @@ export class SqliteRepository implements ResumeRepository {
       throw new ResumeError('NOT_FOUND', id);
     const rows = this.database
       .prepare(
-        'SELECT revision, source, created_at, document_json FROM resume_revisions WHERE resume_id=? ORDER BY revision DESC LIMIT ?',
+        `SELECT r.revision, r.source, r.created_at, r.document_json, x.restored_from
+         FROM resume_revisions r LEFT JOIN restores x ON x.resume_id=r.resume_id AND x.revision=r.revision
+         WHERE r.resume_id=? ORDER BY r.revision DESC LIMIT ?`,
       )
       .all(id, limit + 1) as Array<{
       revision: number;
       source: string;
       created_at: number;
       document_json: string | null;
+      restored_from: number | null;
     }>;
     const documents = rows.map((row) =>
       row.document_json === null ? null : (JSON.parse(row.document_json) as ResumeDocument),
@@ -317,6 +327,7 @@ export class SqliteRepository implements ResumeRepository {
           : [];
       // Labels come from both versions, so a deleted section or entry is named from the one that still had it.
       const changes = !created && current && previous ? summarizeChanges(previous, current) : [];
+      const restoredFrom = row.restored_from === null ? undefined : Number(row.restored_from);
       return {
         revision: Number(row.revision),
         source: String(row.source),
@@ -324,6 +335,7 @@ export class SqliteRepository implements ResumeRepository {
         paths,
         created,
         changes,
+        ...(restoredFrom ? { restoredFrom } : {}),
       };
     });
   }
@@ -579,13 +591,13 @@ export class SqliteRepository implements ResumeRepository {
       if (!head) throw new ResumeError('NOT_FOUND', id);
       const revision = Number(head.current_revision);
       const current = this.snapshot(id, revision)!;
-      const previousRow = this.database
-        .prepare(
-          "SELECT revision FROM resume_revisions WHERE resume_id=? AND revision<? AND kind='document' ORDER BY revision DESC LIMIT 1",
-        )
-        .get(id, revision);
-      const previous = previousRow ? this.snapshot(id, Number(previousRow.revision))! : undefined;
-      const mutated = completeMutation(current, identity.baseRevision, transform, previous);
+      const mutated = completeMutation(current, identity.baseRevision, transform, (past) => {
+        if (!Number.isSafeInteger(past) || past < 1 || past > revision)
+          throw new ResumeError('VALIDATION_FAILED', `revision 必须在 1–${revision} 之间`);
+        const document = this.snapshot(id, past);
+        if (!document) throw new ResumeError('NOT_FOUND', `${id} r${past} 是删除记录`);
+        return document;
+      });
       const next = mutated && this.seal(mutated, current);
       this.insertSnapshot(id, revision + 1, next);
       const update = this.database
@@ -595,6 +607,8 @@ export class SqliteRepository implements ResumeRepository {
       this.database
         .prepare('INSERT INTO mutations VALUES (?,?,?,?,?)')
         .run(id, identity.mutationId, digest, revision + 1, Date.now());
+      if (next && identity.restoredFrom)
+        this.database.prepare('INSERT INTO restores VALUES (?,?,?)').run(id, revision + 1, identity.restoredFrom);
       event = {
         resumeId: id,
         revision: revision + 1,

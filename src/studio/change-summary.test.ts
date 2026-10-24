@@ -87,17 +87,21 @@ it('reads each change from any version by id, not by position', () => {
   expect(moved.pick(before)).toEqual(before.data.sections[4].entries.map((entry) => entry.id));
 });
 
-it('groups consecutive autosaves from one person but keeps each agent commit separate', async () => {
+it('groups consecutive commits from one source, an agent round included, but never a restore', async () => {
   const { groupRevisions } = await import('./ChangeHistory');
   const minute = 60_000;
-  const revision = (number: number, source: string, at: number, changes: string[]) => ({
+  const revision = (number: number, source: string, at: number, changes: string[], restoredFrom?: number) => ({
     revision: number,
     source,
     createdAt: at * minute,
     created: number === 1,
     changes,
+    ...(restoredFrom ? { restoredFrom } : {}),
   });
   const groups = groupRevisions([
+    revision(9, 'human', 21, ['简历名称']),
+    revision(8, 'human', 20.5, [], 4),
+    revision(7, 'agent', 20, ['基本信息 · 邮箱']),
     revision(6, 'agent', 10, ['基本信息 · 目标职位']),
     revision(5, 'agent', 9.9, ['简历名称']),
     revision(4, 'human', 9, ['基本信息 · 姓名']),
@@ -105,13 +109,16 @@ it('groups consecutive autosaves from one person but keeps each agent commit sep
     revision(2, 'human', 1, ['基本信息 · 电话']),
     revision(1, 'human', 0.5, []),
   ]);
-  expect(groups.map((group) => [group.source, group.from, group.to, group.count])).toEqual([
-    ['agent', 6, 6, 1],
-    ['agent', 5, 5, 1],
-    ['human', 3, 4, 2],
-    ['human', 2, 2, 1],
-    ['human', 1, 1, 1],
+  expect(groups.map((group) => [group.source, group.from, group.to, group.count, group.restoredFrom])).toEqual([
+    ['human', 9, 9, 1, undefined],
+    ['human', 8, 8, 1, 4],
+    ['agent', 7, 7, 1, undefined],
+    ['agent', 5, 6, 2, undefined],
+    ['human', 3, 4, 2, undefined],
+    ['human', 2, 2, 1, undefined],
+    ['human', 1, 1, 1, undefined],
   ]);
-  expect(groups[2].changes).toEqual(['基本信息 · 姓名', '基本信息 · 邮箱']);
-  expect(groups[4].created).toBe(true);
+  expect(groups[3].changes).toEqual(['基本信息 · 目标职位', '简历名称']);
+  expect(groups[4].changes).toEqual(['基本信息 · 姓名', '基本信息 · 邮箱']);
+  expect(groups[6].created).toBe(true);
 });

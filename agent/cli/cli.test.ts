@@ -455,6 +455,8 @@ it('theme new, check, install, themes and remove work as one loop', async () => 
       'standard',
       'editorial',
       'minimal',
+      'business',
+      'timeline',
     ]);
   } finally {
     await bridge.close();

@@ -77,8 +77,8 @@ export class ResumeService {
       touchesSource = touches(['/source/revision']);
     const documents = touchesTree || touchesSource ? await this.repository.list() : [];
     const apply = patchTransform(request);
-    return (await this.repository.transact(id, identity(request, request), (current, previous) => {
-      const next = apply(current, previous);
+    return (await this.repository.transact(id, identity(request, request), (current, revisionAt) => {
+      const next = apply(current, revisionAt);
       if (next && touchesTree)
         this.checkPlacement(
           documents.map((document) => (document.id === id ? next : document)),
@@ -159,11 +159,36 @@ export class ResumeService {
       }),
     ))!;
   }
-  async restorePrevious(id: string, request: WriteIdentity) {
-    return (await this.repository.transact(id, identity(request, { kind: 'restore' }), (_current, previous) => {
-      if (!previous) throw new ResumeError('NOT_FOUND', '没有上一版本');
-      return previous;
-    }))!;
+  /**
+   * Brings back what an earlier revision said and how it looked, as a new revision, so the restore can itself be undone.
+   * Where the resume sits in the tree and what it was copied from are relationships, not content, and stay as they are.
+   */
+  async restore(id: string, request: WriteIdentity & { revision: number }) {
+    const { revision, ...write } = request;
+    if (!Number.isSafeInteger(revision) || revision < 1)
+      throw new ResumeError('VALIDATION_FAILED', '恢复需要 revision 正整数');
+    const documents = await this.repository.list();
+    return (await this.repository.transact(
+      id,
+      { ...identity(write, { kind: 'restore', revision }), restoredFrom: revision },
+      (current, revisionAt) => {
+        if (revision >= current.revision)
+          throw new ResumeError('VALIDATION_FAILED', `只能恢复到更早的 revision（1–${current.revision - 1}）`);
+        const { name, data, appearance, target, sample } = revisionAt(revision);
+        const next: ResumeDocument = { ...current, name, data, appearance };
+        if (target) next.target = target;
+        else delete next.target;
+        // The example mark goes with the example's content; restoring an example brings both back.
+        if (sample) next.sample = true;
+        else delete next.sample;
+        this.checkPlacement(
+          documents.map((document) => (document.id === id ? next : document)),
+          next,
+          current,
+        );
+        return next;
+      },
+    ))!;
   }
   async delete(id: string, request: WriteIdentity) {
     await this.repository.transact(id, identity(request, { kind: 'delete' }), () => null);

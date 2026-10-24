@@ -2,7 +2,7 @@ import { readdir, readFile, writeFile, access } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 // Built-in themes in display order; others follow alphabetically.
-const order = ['standard', 'editorial', 'minimal'];
+const order = ['standard', 'editorial', 'minimal', 'business', 'timeline'];
 const required = [
   'id',
   'name',

@@ -56,9 +56,9 @@ it('deduplicates append requests and rejects reuse with different payloads', asy
   ).rejects.toThrow();
   expect((await service.get(document.id)).revision).toBe(2);
 });
-it('rejects stale indices after reordering and restores previous with a new revision', async () => {
+it('rejects stale indices after reordering and restores an earlier revision as a new one', async () => {
   const { service, document } = await setup();
-  await service.patch(document.id, {
+  const moved = await service.patch(document.id, {
     baseRevision: 1,
     mutationId: 'move',
     operations: [{ op: 'move', from: '/data/sections/1', path: '/data/sections/2' }],
@@ -70,10 +70,21 @@ it('rejects stale indices after reordering and restores previous with a new revi
       operations: [{ op: 'replace', path: '/data/sections/1/title', value: 'oops' }],
     }),
   ).rejects.toMatchObject({ code: 'REVISION_CONFLICT' });
-  expect(await service.restorePrevious(document.id, { baseRevision: 2, mutationId: 'restore' })).toMatchObject({
+  expect(await service.restore(document.id, { baseRevision: 2, mutationId: 'restore', revision: 1 })).toMatchObject({
     revision: 3,
     data: document.data,
   });
+  // Restoring again steps further back instead of swapping between the last two versions.
+  await service.patch(document.id, {
+    baseRevision: 3,
+    mutationId: 'rename',
+    operations: [{ op: 'replace', path: '/name', value: '改名' }],
+  });
+  const back = await service.restore(document.id, { baseRevision: 4, mutationId: 'back', revision: 2 });
+  expect(back).toMatchObject({ revision: 5, name: document.name, data: moved.data });
+  await expect(
+    service.restore(document.id, { baseRevision: 5, mutationId: 'future', revision: 5 }),
+  ).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
 });
 it('creates and duplicates once, pins the source, and replays original results after deletion', async () => {
   const { service } = await setup();

@@ -50,7 +50,7 @@ When the user asks what LuliCV is, what else it can do or how it differs from as
 - **Real pages:** the editor shows the resume as A4 pages with live layout, and they can ask in their own words, such as "把实习经历调到第一页" or "技能栏缩短一点". The page is not the PDF: you check the pagination again before export, and the PDF has copyable text.
 - **Appearance:** themes, density, spacing, colours and fonts can be changed to what they ask for. Every theme is single-column.
 - **One per job:** a separate copy tailored to each job description, while the original stays as it was; later changes to the original can be carried over when they choose.
-- **History:** 修改记录 lists each change and whether they or an agent made it, and right after an agent change the page offers 撤销这次修改.
+- **History:** 修改记录 lists each change and whether they or an agent made it, and they can go back to the version before any of them. An agent's quick run of changes counts as one, so 撤销这次修改 undoes all of it.
 - **Privacy mode:** chosen fields, such as name and phone, read as placeholders when an agent goes through LuliCV's CLI or MCP, and the real values are filled in only in a PDF the user approves in the editor. It does not stop an agent that has other access to their files, and it does not cover what an agent read before it was on. So turn it on first and type the details in 隐私信息, or remove them from an old file before an agent reads it. Details: [privacy mode](references/privacy.md).
 - **Cost:** free and open source, runs on their computer, no account. Their agent's own usage is billed as usual.
 
@@ -58,11 +58,11 @@ When the user asks what LuliCV is, what else it can do or how it differs from as
 
 For telling the user where things are. The page may differ from this description, so before pointing the user anywhere or acting in the page yourself, go by what it currently shows.
 
-- Top bar: the resume tree and the current resume's name, the 编辑 and 预览 tabs, 修改记录 (each change and whether the user or the agent made it), and 导出 PDF.
+- Top bar: the resume tree and the current resume's name, the 编辑 and 预览 tabs, 修改记录 (each change and whether the user or the agent made it; pointing at an entry shows 回到这之前, which brings back the version before it), and 导出 PDF.
 - Resume tree: every resume and where it sits; "＋ 为新公司做一份" makes a copy for a company and role.
-- 编辑 opens the form: undo and redo, 新建, 复制简历, and a menu with 重命名…, 恢复上一版本 and 删除.
+- 编辑 opens the form: undo and redo, 新建, 复制简历, and a menu with 重命名… and 删除.
 - Above the pages: 主题, 密度, 页面与排版 (spacing; removing the resume's own stylesheet), 隐私模式, and how full each page is.
-- After an agent change, a notice names what changed and offers 撤销这次修改.
+- After an agent change, a notice names what changed and offers 撤销这次修改, which undoes the agent's whole run of changes since it started. After 回到这之前, a notice offers 撤销恢复.
 
 ## Choose the path
 
@@ -84,11 +84,13 @@ Put one round of edits into one patch file. Indices come from your latest `get`;
 
 `lulicv patch <id> --file <patch.json> --quiet --inspect --images <directory>` writes it, lays out the new revision and saves page images. Look at the images and `pageFill`, then run `lulicv validate <id>`. Paths, page targets, spacing and themes: [editing and layout](references/editing.md).
 
+To bring back an earlier version, find it with `lulicv history <id>`, then `lulicv restore <id> --to <N> --revision <latest>` makes it the newest version as a whole; the versions after it stay in the history, so the restore can be undone the same way. To undo only part of a change, compare with `lulicv diff <id> --from <N>` and patch just that part. Tell the user what came back.
+
 Deliver with `lulicv export <id> --revision <N> --output <file.pdf>`, then tell the user the file, the page count and what you checked. In privacy mode leave out `--output`: the user approves the export in the editor and their browser downloads it, so there is no file or path for you to report; ask them to approve it and check the download, and report the page count.
 
 ## MCP and failures
 
-`lulicv-mcp` (the same command with `mcp` first) is for hosts that cannot run commands. It covers schema, themes, list, get, import, duplicate, patch, validate, inspect and export, and starts the Bridge like the CLI; tree, history, diff, theme and privacy commands are CLI-only. Client setup: [MCP client](references/mcp-client.md). Stopping, backups, moving the workspace and unusual failures: [recovery](references/recovery.md).
+`lulicv-mcp` (the same command with `mcp` first) is for hosts that cannot run commands. It covers schema, themes, list, get (also an earlier revision), history, import, duplicate, patch, restore, validate, inspect and export, and starts the Bridge like the CLI; tree, diff, theme and privacy commands are CLI-only. Client setup: [MCP client](references/mcp-client.md). Stopping, backups, moving the workspace and unusual failures: [recovery](references/recovery.md).
 
 ## Client notes
 

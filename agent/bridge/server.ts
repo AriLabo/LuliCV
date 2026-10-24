@@ -688,7 +688,7 @@ export async function startBridge(options: {
                 ),
               );
             else if (action === 'restore' && request.method === 'POST')
-              send(200, await service.restorePrevious(id, input as unknown as WriteIdentity));
+              send(200, await service.restore(id, input as unknown as WriteIdentity & { revision: number }));
             else throw new ResumeError('NOT_FOUND', '不支持的操作');
           } finally {
             descriptions.delete(`${id}:${mutationId}`);

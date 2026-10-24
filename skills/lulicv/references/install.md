@@ -17,7 +17,7 @@ Then run each of these as its own command. The workspace needs no setup: the fir
 1. Rendering uses an installed Chrome or Edge when there is one, so `lulicv setup` is needed only when doctor's `chromium` check fails. It downloads a headless Chromium (about 100 MB), from npmmirror when the user's npm registry is npmmirror and otherwise from Playwright's CDN, which can crawl for a long time from mainland China instead of failing; `PLAYWRIGHT_DOWNLOAD_HOST` set for that command overrides both, and the result's `downloadHost` shows when the mirror was used. Then run `lulicv doctor` again. Keep them separate: doctor exits 1 while no browser is found, so `doctor && setup` would never reach setup.
 2. Tell the user LuliCV is ready. The installer and doctor reports are for you; pass on a check only when it failed and affects the user, and leave out paths and versions.
    - When the user only asked to install, say what they can now do and how to start, drawing on "What LuliCV offers" in [SKILL.md](../SKILL.md), for example:
-     > 履栗（LuliCV）已经安装好了。现在可以让我帮你制作简历，也可以修改已有简历的内容和排版。字体、配色、间距和整体风格都可以按你的要求调整。你也能在编辑器里自己修改，最后导出 PDF。如果需要投不同岗位，还可以分别制作投递版本，保留原来的简历。你可以把旧简历发给我，直接开始制作；也可以先试试示例，告诉我你想怎么调整排版。如果不想让我看到电话和邮箱，发之前可以先删掉，之后在编辑器里打开隐私模式自己填。
+     > 履栗已经装好了。你可以把旧简历发给我，我帮你改内容和排版；也可以先打开示例看看效果。电话和邮箱可以先删掉，之后在编辑器里自己填。
    - When they also asked for a resume, say it is ready in a clause and start on the resume, asking for an old resume or their background with the contact-details reminder from SKILL.md.
 
    Open the editor with `lulicv preview` once there is a resume to show; right after installing there usually is none.

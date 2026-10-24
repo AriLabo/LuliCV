@@ -1,0 +1,25 @@
+{
+  "id": "timeline",
+  "name": "时间线",
+  "description": "日期放在左栏，一条细线串起每段经历，时间顺序一目了然，适合经历连贯的社招简历。",
+  "version": "1.0.0",
+  "engine": 1,
+  "skeleton": "single",
+  "author": "LuliCV",
+  "license": "MIT",
+  "tags": ["时间线", "清晰", "社招"],
+  "traits": { "photo": true, "atsFriendly": true },
+  "defaults": {
+    "pageMarginMm": 15,
+    "baseFontPt": 9.8,
+    "lineHeight": 1.45,
+    "sectionSpacingPt": 8,
+    "photoEnabled": false
+  },
+  "presets": [
+    { "id": "teal", "name": "黛青", "accentColor": "#2f5d62" },
+    { "id": "navy", "name": "藏蓝", "accentColor": "#274472" },
+    { "id": "ochre", "name": "赭石", "accentColor": "#9a5b2b" }
+  ],
+  "settings": []
+}

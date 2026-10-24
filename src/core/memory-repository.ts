@@ -7,7 +7,7 @@ import type { ResumeDocument } from './types';
 export class MemoryRepository implements ResumeRepository {
   private creations = new Map<string, { fingerprint: string; result: ResumeDocument }>();
   private documents = new Map<string, ResumeDocument>();
-  private previous = new Map<string, ResumeDocument>();
+  private revisions = new Map<string, ResumeDocument[]>();
   private receipts = new Map<string, Receipt>();
   async list() {
     return structuredClone([...this.documents.values()]);
@@ -27,6 +27,7 @@ export class MemoryRepository implements ResumeRepository {
     const document = completeCreation(candidate, source, source && this.documents.get(source.id));
     if (this.documents.has(document.id)) throw new ResumeError('VALIDATION_FAILED', 'ID 已存在');
     this.documents.set(document.id, structuredClone(document));
+    this.revisions.set(document.id, [structuredClone(document)]);
     if (identity)
       this.creations.set(identity.mutationId, { fingerprint: identity.fingerprint, result: structuredClone(document) });
     return structuredClone(document);
@@ -41,10 +42,16 @@ export class MemoryRepository implements ResumeRepository {
     }
     const current = this.documents.get(id);
     if (!current) throw new ResumeError('NOT_FOUND', id);
-    const result = completeMutation(current, request.baseRevision, transform, this.previous.get(id));
-    this.previous.set(id, current);
-    if (result) this.documents.set(id, result);
-    else this.documents.delete(id);
+    const revisions = this.revisions.get(id)!;
+    const result = completeMutation(current, request.baseRevision, transform, (revision) => {
+      const document = revisions[revision - 1];
+      if (!document) throw new ResumeError('NOT_FOUND', `${id} r${revision}`);
+      return document;
+    });
+    if (result) {
+      this.documents.set(id, result);
+      revisions.push(structuredClone(result));
+    } else this.documents.delete(id);
     this.receipts.set(key, { fingerprint: request.fingerprint, result });
     return structuredClone(result);
   }

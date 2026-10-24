@@ -50,7 +50,7 @@ export class BrowserRepository implements ObservableRepository {
   private async open(name: string) {
     const request = indexedDB.open(name, 1);
     request.onupgradeneeded = () => {
-      for (const store of ['documents', 'previous', 'receipts', 'creations']) request.result.createObjectStore(store);
+      for (const store of ['documents', 'receipts', 'creations']) request.result.createObjectStore(store);
     };
     const db = await requestValue(request);
     db.onversionchange = () => db.close();
@@ -119,7 +119,7 @@ export class BrowserRepository implements ObservableRepository {
   }
   async transact(id: string, identity: MutationIdentity, transform: Transform) {
     const db = await this.db;
-    const tx = db.transaction(['documents', 'previous', 'receipts'], 'readwrite');
+    const tx = db.transaction(['documents', 'receipts'], 'readwrite');
     const done = completed(tx);
     void done.catch(() => {});
     try {
@@ -133,9 +133,8 @@ export class BrowserRepository implements ObservableRepository {
       }
       const current: ResumeDocument | undefined = await requestValue(tx.objectStore('documents').get(id));
       if (!current) throw new ResumeError('NOT_FOUND', id);
-      const previous: ResumeDocument | undefined = await requestValue(tx.objectStore('previous').get(id));
-      const result = completeMutation(current, identity.baseRevision, transform, previous);
-      tx.objectStore('previous').put(current, id);
+      // Browser storage keeps only the current version; past revisions live in the workspace's SQLite.
+      const result = completeMutation(current, identity.baseRevision, transform);
       if (result) tx.objectStore('documents').put(result, id);
       else tx.objectStore('documents').delete(id);
       tx.objectStore('receipts').put({ fingerprint: identity.fingerprint, result } satisfies Receipt, key);

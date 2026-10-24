@@ -304,6 +304,76 @@ test('resume tree creates a job version under a direction and shows source chang
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+test("undoing an agent's change undoes its whole round of quick commits", async ({ page }) => {
+  const fixture = await setup();
+  const { bridge, document } = fixture;
+  try {
+    await page.goto(fixture.url);
+    await expect(page.getByRole('textbox', { name: '姓名', exact: true })).toHaveValue('张三');
+    for (const [index, operation] of [
+      { op: 'replace', path: '/data/basics/headline', value: '第一步' },
+      { op: 'replace', path: '/name', value: '第二步' },
+    ].entries()) {
+      await bridgeRequest(bridge.runtime, `/api/resumes/${document.id}`, 'PATCH', {
+        baseRevision: index + 1,
+        mutationId: `round-${index}`,
+        operations: [operation],
+      });
+      await expect(page.getByRole('status')).toContainText(index ? '简历名称' : '目标职位');
+    }
+    await page.getByRole('button', { name: '撤销这次修改' }).click();
+    await expect.poll(async () => (await bridge.service.get(document.id)).revision).toBe(4);
+    expect(await bridge.service.get(document.id)).toMatchObject({ name: document.name, data: document.data });
+    await expect(page.getByRole('status')).toHaveCount(0);
+  } finally {
+    await page.close();
+    await bridge.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+test("after switching resumes, the previous resume's history is never shown or restored from", async ({ page }) => {
+  const fixture = await setup();
+  const { bridge, document } = fixture;
+  try {
+    await bridge.service.patch(document.id, {
+      baseRevision: 1,
+      mutationId: 'switch-a',
+      operations: [{ op: 'replace', path: '/data/basics/headline', value: 'A 的标题' }],
+    });
+    const other = await bridge.service.duplicate(document.id, '另一份', { mutationId: 'switch-b' });
+    await page.goto(fixture.url);
+    const tree = page.getByRole('tree', { name: '简历树' });
+    await tree.locator('[data-resume-row]', { hasText: document.name }).click();
+    await page.getByRole('button', { name: '修改记录' }).click();
+    const items = page.locator('[data-history-source]');
+    await expect(items).toHaveCount(2);
+    await page.getByRole('button', { name: '修改记录' }).click();
+    // Hold the second resume's history so the panel opens before it arrives.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(`**/api/resumes/${other.id}/history`, async (route) => {
+      await gate;
+      await route.continue();
+    });
+    try {
+      await tree.locator('[data-resume-row]', { hasText: '另一份' }).click();
+      await page.getByRole('button', { name: '修改记录' }).click();
+      await expect(page.getByRole('dialog', { name: '修改记录' })).toContainText('正在读取…');
+      await expect(items).toHaveCount(0);
+    } finally {
+      release();
+    }
+    await expect(items).toHaveCount(1);
+    await expect(items.nth(0)).toContainText('创建了这份简历');
+    expect((await bridge.service.get(other.id)).revision).toBe(1);
+  } finally {
+    await page.close();
+    await bridge.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
 test('change history lists human and agent revisions; notices stay visible in preview', async ({ page }) => {
   const fixture = await setup();
   const { bridge, document } = fixture;
@@ -324,14 +394,44 @@ test('change history lists human and agent revisions; notices stay visible in pr
     });
     await expect(page.getByRole('status')).toContainText('Agent 修改了基本信息 · 目标职位');
     await expect(page.getByRole('status')).toBeVisible();
+    // A commit straight after the last one continues the agent's round: one notice, one history entry.
+    await bridgeRequest(bridge.runtime, `/api/resumes/${document.id}`, 'PATCH', {
+      baseRevision: 3,
+      mutationId: 'history-agent-2',
+      operations: [{ op: 'replace', path: '/name', value: 'Agent 改名' }],
+    });
+    await expect(page.getByRole('status')).toContainText('Agent 修改了基本信息 · 目标职位、简历名称');
     await page.getByRole('button', { name: '修改记录' }).click();
     const items = page.locator('[data-history-source]');
     await expect(items).toHaveCount(3);
     await expect(items.nth(0)).toHaveAttribute('data-history-source', 'agent');
+    await expect(items.nth(0)).toContainText('r3–r4');
     await expect(items.nth(0)).toContainText('基本信息 · 目标职位');
     await expect(items.nth(1)).toHaveAttribute('data-history-source', 'human');
     await expect(items.nth(1)).toContainText('基本信息 · 姓名');
     await expect(items.nth(2)).toContainText('创建了这份简历');
+    // The restore button shows on the entry under the pointer only, and creation has nothing before it.
+    const restore = items.nth(0).getByRole('button', { name: '回到这之前' });
+    await expect(restore).toHaveCSS('opacity', '0');
+    await expect(items.nth(2).getByRole('button', { name: '回到这之前' })).toHaveCount(0);
+    await items.nth(0).hover();
+    await expect(restore).toHaveCSS('opacity', '1');
+    await restore.click();
+    await expect(page.getByRole('status')).toContainText('已恢复到 r2，之后的 1 次修改一并撤掉');
+    await expect.poll(async () => (await bridge.service.get(document.id)).revision).toBe(5);
+    expect(await bridge.service.get(document.id)).toMatchObject({
+      name: document.name,
+      data: { basics: { name: '人工修改', headline: document.data.basics.headline } },
+    });
+    await page.getByRole('button', { name: '撤销恢复' }).click();
+    await expect.poll(async () => (await bridge.service.get(document.id)).revision).toBe(6);
+    expect(await bridge.service.get(document.id)).toMatchObject({
+      name: 'Agent 改名',
+      data: { basics: { headline: 'Agent 标题' } },
+    });
+    await page.getByRole('button', { name: '修改记录' }).click();
+    await expect(items.nth(0)).toContainText('恢复到 r4');
+    await expect(items.nth(1)).toContainText('恢复到 r2');
     await page.reload();
     await expect(page.getByRole('note')).toHaveCount(0);
   } finally {

@@ -23,6 +23,8 @@ export interface RevisionSummary {
   createdAt: number;
   created: boolean;
   changes: string[];
+  /** Set when this revision restored an earlier one. */
+  restoredFrom?: number;
 }
 export interface RemoteCommit extends CommitEvent {
   source?: string;
@@ -224,7 +226,8 @@ export class BridgeRepository implements ObservableRepository {
     if (Array.isArray(payload.operations)) return this.request<ResumeDocument>(route, 'PATCH', payload);
     if (payload.kind === 'import')
       return this.request<ResumeDocument>(route + '/replace', 'POST', { ...input, document: payload.input });
-    if (payload.kind === 'restore') return this.request<ResumeDocument>(route + '/restore', 'POST', input);
+    if (payload.kind === 'restore')
+      return this.request<ResumeDocument>(route + '/restore', 'POST', { ...input, revision: payload.revision });
     if (payload.kind === 'delete') return this.request<{ deleted: boolean }>(route, 'DELETE', input).then(() => null);
     return Promise.reject(new ResumeError('VALIDATION_FAILED', '未知修改协议'));
   }

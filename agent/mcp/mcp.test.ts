@@ -70,8 +70,10 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
         'list_themes',
         'list_resumes',
         'get_resume',
+        'get_resume_history',
         'duplicate_resume',
         'patch_resume',
+        'restore_resume',
         'validate_resume',
         'inspect_resume_layout',
         'export_resume_pdf',
@@ -120,20 +122,30 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
     expect(
       (await call(first, 'patch_resume', { ...patch, operations: [{ op: 'destroy', path: '/name' }] })).isError,
     ).toBe(true);
+    const restore = { id: doc.id, revision: 1, baseRevision: 2, mutationId: 'mcp-restore' };
+    expect(data(await call(first, 'restore_resume', restore))).toMatchObject({ revision: 3, name: doc.name });
+    expect(data(await call(second, 'restore_resume', restore))).toMatchObject({ revision: 3 });
+    expect(data(await call(first, 'get_resume', { id: doc.id, revision: 2 }))).toMatchObject({ name: '人工与 Agent' });
+    const { revisions } = data(await call(first, 'get_resume_history', { id: doc.id })) as { revisions: unknown[] };
+    expect(revisions[0]).toMatchObject({
+      revision: 3,
+      source: 'agent',
+      restoredFrom: 1,
+    });
     expect(data(await call(first, 'validate_resume', { id: doc.id }))).toMatchObject({ errors: [] });
     expect(
-      (await call(first, 'export_resume_pdf', { id: doc.id, revision: 2, filename: '../escape.pdf' })).isError,
+      (await call(first, 'export_resume_pdf', { id: doc.id, revision: 3, filename: '../escape.pdf' })).isError,
     ).toBe(true);
     const oldToken = bridge.runtime.token;
     await bridge.close();
     expect((await call(first, 'get_resume', { id: doc.id })).isError).toBe(true);
     bridge = await startBridge({ workspace: root, dist });
     expect(bridge.runtime.token).not.toBe(oldToken);
-    expect(data(await call(first, 'get_resume', { id: doc.id }))).toMatchObject({ revision: 2 });
+    expect(data(await call(first, 'get_resume', { id: doc.id }))).toMatchObject({ revision: 3 });
     expect(written(await call(second, 'duplicate_resume', duplicate))).toEqual(written(copies[0]));
     expect(written(await call(second, 'import_resume', importInput))).toEqual(imported);
     await first.close();
-    expect(await bridge.service.get(doc.id)).toMatchObject({ revision: 2 });
+    expect(await bridge.service.get(doc.id)).toMatchObject({ revision: 3 });
     expect((await runtimeAt(root)).pid).toBe(process.pid);
     expect(diagnostics).not.toContain(oldToken);
     expect(diagnostics).not.toContain(bridge.runtime.token);

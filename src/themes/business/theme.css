@@ -1,0 +1,182 @@
+/* 商务 · engine 1. Rules are nested inside .rs-theme--business when loaded; settings appear as &.rs-set-… on the root. */
+color: #202124;
+font-family: var(
+  --rs-font-family,
+  'Noto Sans SC',
+  -apple-system,
+  BlinkMacSystemFont,
+  'PingFang SC',
+  'Microsoft YaHei',
+  sans-serif
+);
+font-size: var(--rs-font-size);
+line-height: var(--rs-line-height);
+
+/* The header band reaches the paper's edges. It is painted behind the header and out into the page margin, so it
+   takes no room of its own: pagination measures the header as it sits in the flow. */
+.rs-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18pt;
+  padding-bottom: 7mm;
+  color: #fff;
+  isolation: isolate;
+}
+.rs-header::before {
+  position: absolute;
+  z-index: -1;
+  inset: calc(-1 * var(--rs-page-margin)) calc(-1 * var(--rs-page-margin)) 0;
+  background: var(--rs-accent);
+  content: '';
+}
+.rs-identity {
+  min-width: 0;
+  flex: 1;
+}
+.rs-name {
+  margin: 0;
+  font-size: 26pt;
+  font-weight: 700;
+  letter-spacing: 1pt;
+  line-height: 1.1;
+}
+.rs-headline {
+  margin: 5pt 0 0;
+  font-size: 10.5pt;
+  font-weight: 500;
+  opacity: 0.9;
+}
+.rs-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2pt 12pt;
+  margin-top: 9pt;
+  font-size: 8.6pt;
+  opacity: 0.88;
+}
+.rs-details {
+  margin-top: 3pt;
+  font-size: 8.6pt;
+  opacity: 0.88;
+}
+.rs-photo {
+  width: 23mm;
+  height: 30mm;
+  flex: 0 0 auto;
+  border: 1.5pt solid #fff;
+  border-radius: 2pt;
+  object-fit: cover;
+}
+
+/* A slanted tag in the accent colour, with a rule of the same colour running from its foot. */
+.rs-section-title {
+  display: flex;
+  align-items: flex-end;
+  padding-top: calc(var(--rs-section-space) + 2pt);
+  padding-bottom: 4pt;
+}
+.rs-section-title h2 {
+  margin: 0;
+  padding: 2pt 16pt 2pt 9pt;
+  background: var(--rs-accent);
+  color: #fff;
+  font-size: 11pt;
+  font-weight: 700;
+  letter-spacing: 1pt;
+  line-height: 1.3;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8pt) 100%, 0 100%);
+}
+.rs-section-rule {
+  height: 1.2pt;
+  flex: 1;
+  margin-left: -8pt;
+  background: var(--rs-accent);
+}
+
+.rs-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12pt;
+  padding-bottom: 2pt;
+}
+.rs-entry-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.rs-entry-title {
+  color: #1d1f23;
+  font-size: 10.5pt;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.rs-entry-subtitle {
+  color: #4d5259;
+  font-size: 9pt;
+}
+.rs-entry-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  color: #626771;
+  font-size: 8.6pt;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rs-summary,
+.rs-description {
+  padding-bottom: 3pt;
+  color: #41464d;
+}
+.rs-bullet {
+  display: flex;
+  gap: 5pt;
+  padding-bottom: 1.7pt;
+}
+/* A small square, centred on the first line rather than on the whole bullet. */
+.rs-bullet-mark {
+  display: flex;
+  align-items: center;
+  height: calc(var(--rs-font-size) * var(--rs-line-height));
+  font-size: 0;
+}
+.rs-bullet-mark::before {
+  display: inline-block;
+  width: 4pt;
+  height: 4pt;
+  background: var(--rs-accent);
+  content: '';
+}
+.rs-bullet p {
+  flex: 1;
+}
+.rs-skill {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10pt;
+  padding-bottom: 2pt;
+}
+.rs-skill-category {
+  color: var(--rs-accent);
+  font-weight: 700;
+}
+
+/* 联系方式带图标：白色线条图标，和文字同色。 */
+&.rs-set-contacts-icons .rs-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 3pt;
+}
+/* Centred on the line box, an icon sits above the text, whose glyphs lie low in it; .08em brings it level. */
+&.rs-set-contacts-icons .rs-contact-icon {
+  position: relative;
+  top: 0.08em;
+  display: inline-block;
+  width: 8pt;
+  height: 8pt;
+  flex: 0 0 auto;
+}

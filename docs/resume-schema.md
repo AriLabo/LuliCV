@@ -114,7 +114,7 @@ Section 在 `sections` 中的顺序就是编辑器和简历中的顺序。`visib
 | 字段 | 说明 |
 | --- | --- |
 | `appearance.density` | `comfortable` / `balanced` / `dense`。只是预设：在网页选择时按当前主题的推荐值改写下面四个间距参数；渲染始终以 `appearance.layout` 中的数值为准 |
-| `appearance.themeId` | 主题 id。内置 `standard`（标准）、`editorial`（编辑）、`minimal`（简约） |
+| `appearance.themeId` | 主题 id。内置 `standard`（标准）、`editorial`（编辑）、`minimal`（简约）、`business`（商务）、`timeline`（时间线） |
 | `appearance.preset` | 可选。最近一次应用的主题配色预设 id（如 `navy`），仅作记录；颜色和字体实际保存在 `layout` 中 |
 | `appearance.settings` | 可选。主题声明的设置项取值，例如标准主题 `{"header": "center", "contacts": "icons", "rule": "short"}`；当前主题没有声明的项在渲染时忽略 |
 | `appearance.layout.fontFamily` | 可选。`noto-sans-sc`、`misans` 或 `lxgw-neo-xihei`，用随包字体替换 Theme 自带字体；缺省时使用 Theme 字体 |

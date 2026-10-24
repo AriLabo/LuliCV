@@ -428,12 +428,8 @@ function App() {
       : undefined;
   const otherChange = lastChange && !change ? lastChange : undefined;
   const otherChangeName = otherChange && workspace.resumes.find((resume) => resume.id === otherChange.resumeId)?.name;
-  const canUndoAgent =
-    !!change &&
-    !change.created &&
-    !change.deleted &&
-    change.revision === (record as ResumeDocument).revision &&
-    !conflicts[record.id];
+  const canUndoChange =
+    !!change?.undoTo && change.revision === (record as ResumeDocument).revision && !conflicts[record.id];
   const lastFill = pageFill.length > 1 ? pageFill[pageFill.length - 1] : undefined;
   const sparseLastPage = lastFill !== undefined && lastFill < SPARSE_LAST_PAGE;
   // Same content hints an agent gets from validate, so people see them without asking. Warnings about
@@ -594,15 +590,15 @@ function App() {
           <div role="status" className="notice notice-agent">
             <span>{change.text}</span>
             <div className="notice-actions">
-              {canUndoAgent && (
+              {canUndoChange && (
                 <button
                   type="button"
                   onClick={() => {
                     dismissChange();
-                    runAction(useStudioStore.getState().restorePrevious);
+                    runAction(() => useStudioStore.getState().restoreRevision(change.resumeId, change.undoTo!));
                   }}
                 >
-                  撤销这次修改
+                  {change.restored ? '撤销恢复' : '撤销这次修改'}
                 </button>
               )}
               <button type="button" className="notice-close" aria-label="关闭提示" onClick={dismissChange}>
@@ -699,16 +695,6 @@ function App() {
                         }}
                       >
                         重命名…
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          close();
-                          runAction(useStudioStore.getState().restorePrevious);
-                        }}
-                      >
-                        恢复上一版本
                       </button>
                       {record.sample && (
                         <button
@@ -909,7 +895,7 @@ function App() {
                   title={privacy.enabled ? '隐私模式已开启' : '让 agent 只看到占位'}
                   onClick={() => setPrivacyDialog(privacy.enabled ? 'vault' : 'enable')}
                 >
-                  <LockIcon />
+                  <LockIcon variant={privacy.enabled ? 'solid' : 'open'} />
                   <span>隐私模式</span>
                 </button>
               )}

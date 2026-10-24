@@ -11,7 +11,7 @@ The skeleton is the same for every theme, so pagination, links and exported text
 
 ## Workflow
 
-1. `lulicv theme new <id> --from <standard|editorial|minimal> --name <中文名> --output <directory>` copies a built-in theme into a new folder. Start from the closest one and change as little as needed. Nothing is installed yet.
+1. `lulicv theme new <id> --from <standard|editorial|minimal|business|timeline> --name <中文名> --output <directory>` copies a built-in theme into a new folder. Start from the closest one and change as little as needed. Nothing is installed yet.
 2. Edit `theme.css` (and the manifest's presets or settings).
 3. `lulicv theme check <directory> --images <directory>` checks the package, then lays out four fictitious samples (one page, two pages, with photo, long mixed Chinese–English text) with the real Renderer and writes page images. Rendering the samples uses the workspace's Bridge, started if needed. Exit 1 means `errors` or a sample with `issues`; also read `warnings` (unknown classes or variables, hard-coded colours, a sample longer than expected).
 4. Look at every image. Repeat 2–3 until `passed` is true and the pages look right.

@@ -287,13 +287,21 @@ it('stores real values written into a resume as placeholders, and refuses ones i
     ).toMatchObject({ code: 'VALIDATION_FAILED' });
 
     // Restoring a revision from before privacy mode stores placeholders, not the old values.
-    const restored = await browser(`/api/resumes/${id}/restore`, 'POST', { baseRevision: 5, mutationId: 'undo' });
+    const restored = await browser(`/api/resumes/${id}/restore`, 'POST', {
+      baseRevision: 5,
+      mutationId: 'undo',
+      revision: 4,
+    });
     expect(restored.revision).toBe(6);
     expect(leaks(restored)).toEqual([]);
     await browser('/api/privacy', 'PUT', { enabled: false, fields });
     // Turned off, every resume gets its values back, and a tokenized revision restored later too.
     expect(await agent(route)).toMatchObject({ data: { basics: { name: '张三', phone: '13800000000' } } });
-    const undone = await agent(`/api/resumes/${id}/restore`, 'POST', { baseRevision: 7, mutationId: 'undo-off' });
+    const undone = await agent(`/api/resumes/${id}/restore`, 'POST', {
+      baseRevision: 7,
+      mutationId: 'undo-off',
+      revision: 6,
+    });
     expect(undone.data.basics).toMatchObject({
       name: '张三',
       phone: '13800000000',

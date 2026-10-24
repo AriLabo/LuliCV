@@ -23,7 +23,7 @@ A page count is a target only when the user gives one; two pages are normal afte
 How it meets the theme:
 
 - It wins over a theme rule with the same selector. A theme rule tied to a setting (`&.rs-set-header-center .rs-name`) or an element (`a.rs-contact`) is more specific; repeat that part in yours to override it.
-- Themes and their settings lay out the same parts differently: 标准 and 简约 put contacts in a wrapping row, 编辑 lists them in a column, and 标准's centred header centres them. A rule that relies on one layout can break another, so nest it under the theme and setting it was written for. To read what a theme does, `lulicv theme new <id> --from <theme> --output <directory>` copies its `theme.css` without installing anything.
+- Themes and their settings lay out the same parts differently: 标准, 简约, 商务 and 时间线 put contacts in a wrapping row, 编辑 lists them in a column, and 标准's centred header centres them. A rule that relies on one layout can break another, so nest it under the theme and setting it was written for. To read what a theme does, `lulicv theme new <id> --from <theme> --output <directory>` copies its `theme.css` without installing anything.
 - Each printable unit (section title, entry header, paragraph, bullet) sits in its own wrapper for pagination. Sibling selectors such as `.rs-bullet + .rs-bullet` therefore match nothing, and a rule reaches every element of its class. The wrappers' attributes (`data-block-id` and the like) are internal to pagination and change between versions, so a rule that targets them can stop working; the classes and variables in [making a theme](themes.md) are the supported surface.
 
 For example, each link on its own line in 标准 with the left-aligned header (编辑 already lists one per line):
