@@ -42,6 +42,19 @@ it('rolls back an entire invalid batch and rejects metadata and full content ove
       }),
     ).rejects.toThrow();
 });
+it('says which path to write instead of a rejected one', async () => {
+  const { service, document } = await setup();
+  const attempt = (path: string) =>
+    service.patch(document.id, {
+      baseRevision: 1,
+      mutationId: 'bad',
+      operations: [{ op: 'replace', path, value: {} }],
+    });
+  await expect(attempt('/basics/name')).rejects.toThrow('应写 /data/basics/name');
+  await expect(attempt('/layout/lineHeight')).rejects.toThrow('应写 /appearance/layout/lineHeight');
+  await expect(attempt('/revision')).rejects.toThrow('可写的是 /name');
+  await expect(attempt('/data/sections')).rejects.toThrow('逐节写 /data/sections/<i>');
+});
 it('deduplicates append requests and rejects reuse with different payloads', async () => {
   const { service, document } = await setup();
   const request = {

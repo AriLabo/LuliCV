@@ -112,7 +112,7 @@ export function ResumePreview({
       if (cancelled || !pagesRef.current) return;
       const issues: LayoutIssue[] = inspectLayout(
         pagesRef.current,
-        rendered.blocks.length,
+        rendered.blocks,
         record.appearance.layout.baseFontPt,
       );
       const pageFill = measurePageFill(pagesRef.current);
@@ -133,7 +133,7 @@ export function ResumePreview({
     return () => {
       cancelled = true;
     };
-  }, [pages, onIssues, onReady, onRenderError, onPageFill, record, rendered.blocks.length]);
+  }, [pages, onIssues, onReady, onRenderError, onPageFill, record, rendered.blocks]);
 
   const blockMap = new Map(rendered.blocks.map((block) => [block.id, block]));
   const style = themeVariables(record.appearance.layout);

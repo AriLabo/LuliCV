@@ -34,12 +34,27 @@ function checkPath(path: unknown, write: boolean): void {
     throw new ResumeError('VALIDATION_FAILED', '禁止访问原型');
   // `source` is provenance; only its revision moves, to mark source changes as seen.
   if (parts[0] === 'source' && path === '/source/revision') return;
-  if (!['name', 'data', 'appearance', 'target', 'parentId', 'purpose', 'sample'].includes(parts[0]))
-    throw new ResumeError('VALIDATION_FAILED', '禁止修改文档元数据');
+  if (!['name', 'data', 'appearance', 'target', 'parentId', 'purpose', 'sample'].includes(parts[0])) {
+    // Name the right path when the patch only left out /data or /appearance, the usual first mistake.
+    const parent = ['basics', 'sections'].includes(parts[0])
+      ? '/data'
+      : ['themeId', 'layout', 'settings', 'preset', 'css', 'density'].includes(parts[0])
+        ? '/appearance'
+        : undefined;
+    throw new ResumeError(
+      'VALIDATION_FAILED',
+      parent
+        ? `没有 ${path} 这个路径，应写 ${parent}${path}`
+        : `不能修改 ${path}：可写的是 /name、/data/…（/data/basics、/data/sections/<i>）、/appearance/…、/target、/parentId、/purpose、/sample 和 /source/revision`,
+    );
+  }
   if (['parentId', 'purpose', 'sample'].includes(parts[0]) && parts.length !== 1)
     throw new ResumeError('VALIDATION_FAILED', `非法 ${parts[0]} 路径`);
   if (write && (path === '/data' || path === '/data/sections'))
-    throw new ResumeError('VALIDATION_FAILED', '整份内容替换请使用显式导入');
+    throw new ResumeError(
+      'VALIDATION_FAILED',
+      `不能整体替换或删除 ${path}，那会覆盖用户在编辑器里的修改：逐节写 /data/sections/<i>（先 test 那一节的 id），基本信息写 /data/basics；要一份全新的简历才用导入`,
+    );
   if (parts[0] === 'name' && parts.length !== 1) throw new ResumeError('VALIDATION_FAILED', '非法 name 路径');
 }
 export function patchTransform(request: ResumePatch): Transform {
