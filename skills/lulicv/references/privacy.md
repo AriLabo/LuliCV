@@ -4,7 +4,7 @@ The user can hide their name, phone, email, photo and other fields. Reads throug
 
 ## Recognize it
 
-Every response carries `privacy: {mode, fields, notice}` while it is on, `lulicv doctor` adds a `privacy` check, and `lulicv privacy` prints the settings. Follow the `notice`.
+Every response carries `privacy: {mode, fields, notice}` while it is on, `lulicv doctor` adds a `privacy` check, and `lulicv privacy` prints the settings. Follow the `notice`. While it is off, responses carry `privacy: {mode: false}`, and the first one after the user turns it off adds a `notice`: from then on you read real values, and exports no longer wait for approval.
 
 ## Placeholders
 

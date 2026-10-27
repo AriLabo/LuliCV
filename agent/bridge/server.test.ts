@@ -666,6 +666,7 @@ it('installs, serves, replaces and removes workspace themes, and skips broken on
     expect(await (await bridgeRequest(bridge.runtime, '/api/themes/ink-demo', 'DELETE', {})).json()).toEqual({
       removed: 'ink-demo',
       usedBy: [{ id: resume.id, name: '主题使用者' }],
+      privacy: { mode: false },
     });
     await expect(access(path.join(root, 'themes/ink-demo'))).rejects.toMatchObject({ code: 'ENOENT' });
     expect(

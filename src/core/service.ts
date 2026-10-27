@@ -70,13 +70,14 @@ export class ResumeService {
   renderable(document: ResumeDocument) {
     return this.repository.fill?.(document) ?? document;
   }
-  async patch(id: string, request: ResumePatch) {
+  /** `resolve` is applied to a new request's operations only; see patchTransform. */
+  async patch(id: string, request: ResumePatch, resolve?: Parameters<typeof patchTransform>[1]) {
     const touches = (paths: string[]) =>
       Array.isArray(request.operations) && request.operations.some((operation) => paths.includes(operation?.path));
     const touchesTree = touches(['/parentId', '/target', '']),
       touchesSource = touches(['/source/revision']);
     const documents = touchesTree || touchesSource ? await this.repository.list() : [];
-    const apply = patchTransform(request);
+    const apply = patchTransform(request, resolve);
     return (await this.repository.transact(id, identity(request, request), (current, revisionAt) => {
       const next = apply(current, revisionAt);
       if (next && touchesTree)

@@ -167,7 +167,7 @@ a.rs-contact {
 }
 &.rs-set-header-center:not(.rs-set-contacts-icons) .rs-contact + .rs-contact::before {
   margin: 0 0.5em;
-  opacity: 0.4;
+  color: color-mix(in srgb, currentColor 40%, transparent);
   content: '|';
 }
 &.rs-set-header-center .rs-header--photo {

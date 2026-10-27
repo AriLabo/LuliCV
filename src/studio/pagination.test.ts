@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocatePages, type MeasuredBlock } from './pagination';
+import { allocatePages, layoutPages, type MeasuredBlock } from './pagination';
 
 const block = (id: string, height: number, extra: Partial<MeasuredBlock> = {}): MeasuredBlock => ({
   id,
@@ -96,5 +96,26 @@ describe('allocatePages', () => {
 
     expect(pages).toHaveLength(3);
     expect(heights).toEqual([80, 80, 80]);
+    expect(layoutPages(blocks, 90, 90).spread).toBe(true);
+  });
+
+  it('leaves a few lines of overflow on a short last page instead of rebalancing every page', () => {
+    // Three blocks per page would balance this, but the third page only holds what spilled over the second.
+    const blocks = Array.from({ length: 9 }, (_, index) => block(`block-${index}`, 20));
+    const layout = layoutPages(blocks, 90, 90);
+
+    expect(layout.pages.map((page) => page.blockIds.length)).toEqual([4, 4, 1]);
+    expect(layout.spread).toBe(false);
+  });
+
+  it('counts the continuation label in the share of the last page', () => {
+    // Two full pages, then the second block of an entry spills over: 20 high, plus a 10-high label when it has one.
+    const spill = (continuationHeight: number) => [
+      ...Array.from({ length: 8 }, (_, index) => block(`block-${index}`, 20)),
+      block('entry-head', 10, { groupId: 'g' }),
+      block('entry-bullet', 20, { groupId: 'g', continuationHeight }),
+    ];
+    expect(layoutPages(spill(0), 80, 90).spread).toBe(false);
+    expect(layoutPages(spill(10), 80, 90).spread).toBe(true);
   });
 });

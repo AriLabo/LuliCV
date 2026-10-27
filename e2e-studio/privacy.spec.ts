@@ -184,16 +184,25 @@ test('people turn privacy mode on, fill the values, edit around placeholders, ex
     const input = vault.getByRole('textbox', { name: '填写电话' });
     await expect(input).toHaveValue('');
     await input.fill('13900000000');
-    // Typed values are drawn as dots until the user asks to see them; each new entry starts hidden again.
+    /*
+     * Typed values are drawn as dots until the user asks to see them; each new entry starts hidden again. The input
+     * stays a plain text input (no -webkit-text-security, which turns off input methods on macOS) with transparent text,
+     * and the dots carry no text of their own.
+     */
     const masking = () =>
-      input.evaluate((element) => getComputedStyle(element).getPropertyValue('-webkit-text-security'));
-    expect(await masking()).toBe('disc');
+      input.evaluate((element) => ({
+        security: getComputedStyle(element).getPropertyValue('-webkit-text-security'),
+        transparent: getComputedStyle(element).color === 'rgba(0, 0, 0, 0)',
+        dots: element.parentElement!.querySelectorAll('[data-character]').length,
+      }));
+    expect(await masking()).toEqual({ security: 'none', transparent: true, dots: 11 });
+    expect(await vault.innerText()).not.toContain('13900000000');
     await vault.getByRole('button', { name: '显示', exact: true }).click();
-    expect(await masking()).toBe('none');
+    expect(await masking()).toMatchObject({ transparent: false, dots: 0 });
     await expect(input).toBeFocused();
     await vault.getByRole('button', { name: '取消' }).click();
     await vault.getByRole('button', { name: '重新填写电话' }).click();
-    expect(await masking()).toBe('disc');
+    expect(await masking()).toEqual({ security: 'none', transparent: true, dots: 0 });
     await input.fill('13900000000');
     await vault.getByRole('button', { name: '保存' }).click();
     await expect(vault.locator('[data-private-value="phone"]')).toContainText('已填写 · 11 位');

@@ -24,6 +24,7 @@ import {
   loosens,
   normalizePrivacy,
   PRIVACY_NOTICE,
+  PRIVACY_OFF_NOTICE,
   PrivacyView,
   privateFieldOptions,
   type ExportLogEntry,
@@ -32,6 +33,7 @@ import {
   type PrivateField,
 } from '../../src/core/privacy';
 import { ExportApprovals } from './export-approval';
+import { refusePhotoSummary, restorePhotos, summarizePhotos } from './photo';
 export interface Runtime {
   pid: number;
   origin: string;
@@ -67,17 +69,25 @@ function json(response: ServerResponse, status: number, data: unknown) {
 }
 /**
  * Responses in privacy mode carry placeholders instead of private values; agent responses also say so, with what
- * privacy mode changed in their writes. Page images are covered by the renderer.
+ * privacy mode changed in their writes. Page images are covered by the renderer. With privacy mode off, agent
+ * responses say that too (`off` gives what to say), so an agent that saw it on does not keep assuming it is.
+ * Agents get photos as a summary.
  */
 function reply(
   response: ServerResponse,
   status: number,
   data: unknown,
   view?: PrivacyView,
-  agent?: { notes: string[] },
+  agent?: { notes: string[]; off?: () => { mode: false; notice?: string } },
 ) {
+  if (agent) data = summarizePhotos(data);
   if (!view) {
-    json(response, status, data);
+    if (agent?.off) response.setHeader('X-Resume-Privacy', 'off');
+    json(
+      response,
+      status,
+      agent?.off && data && typeof data === 'object' && !Array.isArray(data) ? { ...data, privacy: agent.off() } : data,
+    );
     return;
   }
   response.setHeader('X-Resume-Privacy', 'on');
@@ -214,12 +224,29 @@ export async function startBridge(options: {
       .join('=');
     return !!cookie && /^[a-f0-9]{64}$/.test(cookie) && repository.hasBrowserSession(cookie);
   }
+  // Whether agents were last told privacy mode is on: the first agent response after the person turns it off says so.
+  let toldAgentsPrivate = repository.privacy().enabled;
+  const privacyOff = () => {
+    const changed = toldAgentsPrivate;
+    toldAgentsPrivate = false;
+    return { mode: false as const, ...(changed ? { notice: PRIVACY_OFF_NOTICE } : {}) };
+  };
   const server = createServer((request, response) => {
     const agent = !!request.headers.authorization;
     // Set while privacy mode is on, for agents and the web page alike; every response and error goes through it.
     let view: PrivacyView | undefined;
-    const send = (status: number, data: unknown) =>
-      reply(response, status, data, view, agent ? { notes: repository.privacyNotes() } : undefined);
+    // Set for agent requests that privacy mode would cover while it is off.
+    let off = false;
+    const send = (status: number, data: unknown) => {
+      if (view && agent) toldAgentsPrivate = true;
+      reply(
+        response,
+        status,
+        data,
+        view,
+        agent ? { notes: repository.privacyNotes(), ...(off ? { off: privacyOff } : {}) } : undefined,
+      );
+    };
     void repository
       .withContext({ source: agent ? 'agent' : 'human', privacyNotes: [] }, async () => {
         if (
@@ -254,13 +281,12 @@ export async function startBridge(options: {
           // The render page loads the filled resume it lays out; that route is for the Bridge's own renderer.
           if (privacy.enabled && pathname.startsWith('/api/render/') && agent)
             throw new ResumeError('PRIVACY_MODE', '隐私模式下渲染数据只供 Bridge 内部排版使用');
-          if (
-            privacy.enabled &&
+          const covered =
             !['/api/health', '/api/shutdown', '/api/session', '/api/preview-entry', '/api/events'].includes(pathname) &&
             !pathname.startsWith('/api/privacy') &&
-            !pathname.startsWith('/api/render/')
-          )
-            view = new PrivacyView(privacy, repository.privateStore());
+            !pathname.startsWith('/api/render/');
+          if (privacy.enabled && covered) view = new PrivacyView(privacy, repository.privateStore());
+          else off = agent && covered;
           if (pathname === '/api/session' && request.method === 'POST') {
             if (agent) throw new ResumeError('UNAUTHORIZED', '浏览器只能用 lulicv preview 给出的链接打开');
             if (previewSession) {
@@ -378,7 +404,9 @@ export async function startBridge(options: {
             return;
           }
           if (pathname === '/api/import-resume' && request.method === 'POST') {
-            send(201, await service.importResume(await body(request)));
+            const input = await body(request);
+            if (agent) refusePhotoSummary(input.data);
+            send(201, await service.importResume(input));
             return;
           }
           if (pathname === '/api/tree' && request.method === 'GET') {
@@ -647,10 +675,12 @@ export async function startBridge(options: {
                 pages: (result.report as { pageCount: number }).pageCount,
                 outcome: 'web',
               });
+            // Saves after the inspected revision make this PDF older than the resume; the caller says so.
             response.writeHead(200, {
               'Content-Type': 'application/pdf',
               'Cache-Control': 'no-store',
               'X-Resume-Revision': String(revision),
+              'X-Resume-Latest-Revision': String((await service.get(id)).revision),
             });
             response.end(result.pdf);
             return;
@@ -673,8 +703,17 @@ export async function startBridge(options: {
           )
             throw new ResumeError('VALIDATION_FAILED', '示例标记只在创建内置示例时产生，agent 只能 remove /sample');
           try {
+            // Photo summaries an agent writes back stand for the photo the resume has when the write applies; a retry
+            // of a write already applied is answered from its receipt even if the photo has changed since.
             if (!action && request.method === 'PATCH')
-              send(200, await service.patch(id, input as unknown as ResumePatch));
+              send(
+                200,
+                await service.patch(
+                  id,
+                  input as unknown as ResumePatch,
+                  agent ? (operations, current) => restorePhotos(operations, current.data.basics.photo) : undefined,
+                ),
+              );
             else if (!action && request.method === 'DELETE') {
               await service.delete(id, input as unknown as WriteIdentity);
               send(200, { deleted: true });

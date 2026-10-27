@@ -12,6 +12,8 @@ import { bridgeRequest } from '../agent/cli/client';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cloneSample } from '../src/core/fixtures';
+import { themeCatalog } from '../src/core/document';
+import { themeSamples } from '../src/core/theme-samples';
 
 test('inspect passes a blank resume: sections still to be filled in are content hints, not layout issues', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-blank-'));
@@ -188,6 +190,79 @@ test('inspect and PDF use the same two-page snapshot while editing continues', a
     await rm(root, { recursive: true, force: true });
   }
 });
+/*
+ * Parsers that read a PDF's text stream (pdf.js, PyMuPDF's default get_text, applicant tracking systems) see the text in
+ * the order Chromium drew it. Every theme, with and without a photo, keeps that order the reading order: the header
+ * first with its detail separators in place, then each section title just before its own content.
+ */
+test('PDF text follows reading order in every theme', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'resume-text-order-'));
+  await initializeWorkspace(root);
+  let renderer: WorkspaceRenderer | undefined;
+  const bridge = await startBridge({
+    workspace: root,
+    dist: path.resolve('dist'),
+    renderer: (service, runtime) => (renderer = new WorkspaceRenderer(service, runtime)),
+  });
+  try {
+    for (const theme of themeCatalog) {
+      const photo = themeSamples(theme as Parameters<typeof themeSamples>[0]).find((sample) => sample.id === 'photo')!;
+      const variants: { label: string; photo: boolean; settings: Record<string, string> }[] = [
+        { label: 'plain', photo: false, settings: {} },
+        { label: 'photo', photo: true, settings: {} },
+        ...(theme.id === 'standard' ? [{ label: 'center', photo: true, settings: { header: 'center' } }] : []),
+      ];
+      for (const variant of variants) {
+        const data = structuredClone(photo.document.data);
+        if (!variant.photo) delete data.basics.photo;
+        Object.assign(data.basics, { gender: '男', birthDate: '1998.05', politicalStatus: '群众' });
+        const appearance = structuredClone(photo.document.appearance);
+        appearance.layout.photoEnabled = variant.photo;
+        appearance.settings = variant.settings;
+        const document = await bridge.service.create({ data, appearance });
+        const { pdf: bytes } = await renderer!.export(document.id, document.revision);
+        const loading = getDocument({ data: new Uint8Array(bytes), useSystemFonts: true });
+        try {
+          const page = await (await loading.promise).getPage(1);
+          const text = (await page.getTextContent()).items
+            .flatMap((item) => ('str' in item ? [item.str] : []))
+            .join('')
+            .replace(/\s+/g, '');
+          const contacts = variant.settings.header === 'center' ? ['13800000000|example@example.com|上海'] : [];
+          const order = [
+            '张三',
+            ...contacts,
+            '男|1998.05|群众',
+            '个人简介',
+            '专注于可靠',
+            '工作经历',
+            '示例科技有限公司',
+            '负责核心业务平台',
+            '项目经历',
+            '本地知识工作台',
+            '教育背景',
+            '示例大学',
+            '专业技能',
+            'TypeScript',
+          ];
+          let at = 0;
+          for (const part of order) {
+            const found = text.indexOf(part, at);
+            expect(found, `${theme.id} ${variant.label}: “${part}” out of order in ${text}`).toBeGreaterThanOrEqual(0);
+            at = found + part.length;
+          }
+          expect(text.split('|').length - 1, `${theme.id} ${variant.label}: separators`).toBe(contacts.length ? 6 : 2);
+        } finally {
+          await loading.destroy();
+        }
+      }
+    }
+  } finally {
+    await bridge.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('broken photo decode fails inspect instead of reporting ready', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-photo-'));
   await initializeWorkspace(root);

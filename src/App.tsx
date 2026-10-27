@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Editor } from './studio/Editor';
 import { downloadBlob, pdfFilename } from './studio/files';
 import { ResumePreview } from './studio/ResumePreview';
+import { SPARSE_LAST_PAGE } from './studio/pagination';
 import { EmptyWorkspace } from './studio/EmptyWorkspace';
 import { CustomCssNote } from './studio/CustomCssNote';
 import { ThemePanel } from './studio/ThemePanel';
@@ -25,7 +26,6 @@ import { BackupPanel } from './studio/BackupPanel';
 import { usePreviewZoom } from './studio/preview-zoom';
 
 const densityNames = { comfortable: '舒适', balanced: '适中', dense: '紧凑' } as const;
-const SPARSE_LAST_PAGE = 0.3;
 const NARROW_QUERY = '(max-width: 1099px)';
 const EDIT_HINT_KEY = 'lulicv:edit-hint-seen';
 const TREE_KEY = 'lulicv:tree-open';

@@ -154,7 +154,8 @@ function CommitField({
         onChange={(event) => setText(event.target.value)}
         onBlur={commit}
         onKeyDown={(event) => {
-          if (event.key === 'Enter') commit();
+          // The Enter that picks an input method's candidate finishes the word, not the field.
+          if (event.key === 'Enter' && !event.nativeEvent.isComposing) commit();
           if (event.key === 'Escape') setText(value);
         }}
       />

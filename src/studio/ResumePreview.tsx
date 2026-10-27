@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { getTheme, useThemeRegistry } from '@/themes/registry';
-import { allocatePages, toMeasuredBlocks, type PageAllocation } from './pagination';
+import { layoutPages, toMeasuredBlocks, type PageLayout } from './pagination';
 import { inspectLayout, measurePageFill } from './layout-qa';
 import type { LayoutIssue, ResumeRecord, ThemeBlock } from './types';
 import type { ResumeDocument } from '../core/types';
@@ -54,7 +54,11 @@ export function ResumePreview({
   const custom = useAppearanceCss(record.appearance.css);
   const measureRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<HTMLDivElement>(null);
-  const [pages, setPages] = useState<PageAllocation[]>([{ blockIds: rendered.blocks.map((block) => block.id) }]);
+  const [layout, setLayout] = useState<PageLayout>({
+    pages: [{ blockIds: rendered.blocks.map((block) => block.id) }],
+    spread: false,
+  });
+  const pages = layout.pages;
 
   useLayoutEffect(() => {
     const measure = measureRef.current;
@@ -77,12 +81,13 @@ export function ResumePreview({
         );
       const computed = getComputedStyle(inner);
       const capacity = inner.clientHeight - parseFloat(computed.paddingTop) - parseFloat(computed.paddingBottom);
-      const result = allocatePages(
-        toMeasuredBlocks(rendered.blocks, heights, continuationHeights),
-        capacity - header.getBoundingClientRect().height,
-        capacity,
+      setLayout(
+        layoutPages(
+          toMeasuredBlocks(rendered.blocks, heights, continuationHeights),
+          capacity - header.getBoundingClientRect().height,
+          capacity,
+        ),
       );
-      setPages(result);
     };
     recalculate();
     void document.fonts.ready
@@ -163,7 +168,7 @@ export function ResumePreview({
         {pages.map((page, pageIndex) => (
           <section
             key={pageIndex}
-            className={`page-wrap ${rootClass}${pages.length >= 3 ? ' page-wrap--balanced-flow' : ''}`}
+            className={`page-wrap ${rootClass}${layout.spread ? ' page-wrap--balanced-flow' : ''}`}
             style={style}
             {...custom.scope}
           >

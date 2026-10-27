@@ -48,7 +48,22 @@ export function inspectLayout(container: HTMLElement, blocks: HeadingBlock[], ba
   return issues;
 }
 
+/*
+ * Fill is the share of a page the content itself takes. Pages that spread their spare height between blocks are
+ * measured with the spreading switched off for the moment, so it does not count as content; the class comes back
+ * before anything paints.
+ */
 export function measurePageFill(container: HTMLElement): number[] {
+  const spread = Array.from(container.querySelectorAll<HTMLElement>('.page-wrap--balanced-flow'));
+  spread.forEach((page) => page.classList.remove('page-wrap--balanced-flow'));
+  try {
+    return measureNaturalFill(container);
+  } finally {
+    spread.forEach((page) => page.classList.add('page-wrap--balanced-flow'));
+  }
+}
+
+function measureNaturalFill(container: HTMLElement): number[] {
   return Array.from(container.querySelectorAll<HTMLElement>('[data-page-inner]')).map((inner) => {
     const style = getComputedStyle(inner);
     const top = inner.getBoundingClientRect().top + parseFloat(style.paddingTop);

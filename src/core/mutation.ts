@@ -57,7 +57,14 @@ function checkPath(path: unknown, write: boolean): void {
     );
   if (parts[0] === 'name' && parts.length !== 1) throw new ResumeError('VALIDATION_FAILED', '非法 name 路径');
 }
-export function patchTransform(request: ResumePatch): Transform {
+/**
+ * `resolve` turns the operations as sent into the ones applied, against the document they apply to. It runs only for a
+ * new request: a retry of one already applied is answered from its receipt, whatever the document has become since.
+ */
+export function patchTransform(
+  request: ResumePatch,
+  resolve?: (operations: Operation[], current: ResumeDocument) => Operation[],
+): Transform {
   if (!Array.isArray(request.operations) || request.operations.length === 0 || request.operations.length > 1000)
     throw new ResumeError('VALIDATION_FAILED', 'operations 必须包含 1–1000 个操作');
   for (const operation of request.operations) {
@@ -69,9 +76,10 @@ export function patchTransform(request: ResumePatch): Transform {
     if (operation.op === 'move' || operation.op === 'copy') checkPath(operation.from, operation.op === 'move');
   }
   return (current) => {
+    const operations = resolve ? resolve(request.operations, current) : request.operations;
     let next: ResumeDocument;
     try {
-      next = jsonPatch.applyPatch(structuredClone(current), request.operations, true, true, true).newDocument;
+      next = jsonPatch.applyPatch(structuredClone(current), operations, true, true, true).newDocument;
     } catch (error) {
       // fast-json-patch appends the whole document to its message; keep only what identifies the failing operation.
       const detail = error as {

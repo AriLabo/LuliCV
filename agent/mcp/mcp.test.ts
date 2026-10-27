@@ -81,6 +81,7 @@ it('real stdio clients share one writer, deduplicate across restarts and return 
     );
     const summary = data(await call(first, 'list_resumes', {}));
     expect(summary.resumes).toEqual([{ id: doc.id, name: doc.name, revision: 1, updatedAt: doc.updatedAt }]);
+    expect(summary.privacy).toEqual({ mode: false });
     expect(data(await call(first, 'get_resume', { id: doc.id }))).toMatchObject({ revision: 1 });
     const duplicate = { id: doc.id, sourceRevision: 1, mutationId: 'mcp-job-version', name: '岗位版本' };
     const copies = await Promise.all([

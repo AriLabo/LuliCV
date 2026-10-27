@@ -115,14 +115,21 @@ test('标准主题的页眉、联系方式和标题线设置只改外观并保�
   expect(pdf.byteLength).toBeGreaterThan(10_000);
 });
 
-test('三页母版会舒展页内节奏但保留安全页底', async ({ page }) => {
+test('三页母版会舒展页内节奏但保留安全页底，只溢出几行时留着短末页', async ({ page }) => {
   await ready(page);
   const section = page.locator('[data-section-type="experience"]');
-  for (let index = 0; index < 30; index += 1)
-    await section.getByRole('button', { name: '复制', exact: true }).first().click();
-  await expect.poll(() => page.locator('[data-a4-page]').count()).toBeGreaterThanOrEqual(3);
-  const pageCount = await page.locator('[data-a4-page]').count();
-  await expect(page.locator('.page-wrap--balanced-flow')).toHaveCount(pageCount);
+  const duplicate = async (times: number) => {
+    for (let index = 0; index < times; index += 1)
+      await section.getByRole('button', { name: '复制', exact: true }).first().click();
+  };
+  // A few lines over two pages: the third page stays short and the other two stay full.
+  await duplicate(20);
+  await expect.poll(() => page.locator('[data-a4-page]').count()).toBe(3);
+  await expect(page.getByText('第 3 页只用了')).toBeVisible();
+  await expect(page.locator('.page-wrap--balanced-flow')).toHaveCount(0);
+
+  await duplicate(4);
+  await expect(page.locator('.page-wrap--balanced-flow')).toHaveCount(3);
   await expect(page.getByText('排版检查通过')).toBeVisible();
   const bottomSpaces = await page.locator('[data-page-inner]').evaluateAll((pages) =>
     pages.map((inner) => {
@@ -132,6 +139,21 @@ test('三页母版会舒展页内节奏但保留安全页底', async ({ page }) 
     }),
   );
   expect(bottomSpaces.every((space) => space >= 45 && space <= 180)).toBe(true);
+  // The page meter counts the content, not the height spread between blocks.
+  const spreadFill = await page.locator('[data-page-inner]').evaluateAll((pages) =>
+    pages.map((inner) => {
+      const style = getComputedStyle(inner);
+      const top = inner.getBoundingClientRect().top + parseFloat(style.paddingTop);
+      const capacity = inner.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      const blocks = inner.querySelectorAll('[data-block-id]');
+      return (blocks[blocks.length - 1].getBoundingClientRect().bottom - top) / capacity;
+    }),
+  );
+  const meterFill = (await page.locator('.page-meter__page').allTextContents()).map(
+    (text) => Number(/(\d+)%/.exec(text)![1]) / 100,
+  );
+  expect(meterFill).toHaveLength(3);
+  meterFill.forEach((fill, index) => expect(fill).toBeLessThan(spreadFill[index] - 0.1));
 });
 
 test('霞鹜新晰黑使用本地字体且保持一页排版', async ({ page }) => {

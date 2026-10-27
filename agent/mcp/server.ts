@@ -5,11 +5,10 @@ import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import { mkdir, realpath, lstat } from 'node:fs/promises';
 import path from 'node:path';
-import { awaitExport, bridgeRequest, editorStatus, ensureBridge, type ExportApproval } from '../cli/client';
+import { awaitExport, bridgeRequest, editorStatus, ensureBridge, privacyOf, type ExportApproval } from '../cli/client';
 import { writeOutput } from '../cli/output';
 import { ResumeError } from '../../src/core/errors';
 import type { ResumeDocument } from '../../src/core/types';
-import { PRIVACY_NOTICE } from '../../src/core/privacy';
 
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,128}$/);
 const revision = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -97,9 +96,7 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
         const response = await request('/api/resumes');
         const documents = (await response.json()) as ResumeDocument[];
         return {
-          ...(response.headers.get('x-resume-privacy') === 'on'
-            ? { privacy: { mode: true, notice: PRIVACY_NOTICE } }
-            : {}),
+          ...privacyOf(response),
           resumes: documents.map(({ id, name, revision, updatedAt, target, source, parentId, purpose, sample }) => ({
             id,
             name,
@@ -294,7 +291,19 @@ export function createMcpServer(root: string, workspaceId: string, cli: string) 
           path.join(directory, filename),
           Buffer.from(await response.arrayBuffer()),
         );
-        return { id, revision, output };
+        // Saves after the inspected revision make this PDF older than the resume.
+        const latest = Number(response.headers.get('x-resume-latest-revision'));
+        return {
+          id,
+          revision,
+          output,
+          ...(latest > revision
+            ? {
+                latestRevision: latest,
+                note: `导出的是第 ${revision} 版，这份简历之后又改过，现在是第 ${latest} 版；交付前确认用户要的是哪一版`,
+              }
+            : {}),
+        };
       }, 'export'),
   );
   return server;

@@ -2,7 +2,11 @@
 
 ## Patches
 
-A patch (see the example in SKILL.md) applies RFC 6902 operations to `/name`, `/data/...`, `/appearance/...`, `/target`, `/parentId`, `/purpose`, `/sample` (remove it only when the user asks) or `/source/revision`. Change only the parts you mean to change: replacing `/data` or `/data/sections` as a whole is rejected, because it would overwrite whatever the user edited meanwhile. `--quiet` on `list`, `import`, `duplicate` and `patch` returns `{id, name, revision, …}` instead of the whole document.
+A patch (see the example in SKILL.md) applies RFC 6902 operations to `/name`, `/data/...`, `/appearance/...`, `/target`, `/parentId`, `/purpose`, `/sample` (remove it only when the user asks) or `/source/revision`. Change only the parts you mean to change: replacing `/data` or `/data/sections` as a whole is rejected, because it would overwrite whatever the user edited meanwhile. `--quiet` on `list`, `import`, `duplicate` and `patch` returns `{id, name, revision, …}` instead of the whole document; `list` gives them as `{resumes, privacy}`.
+
+A photo reads as a one-line summary such as `照片已省略（JPEG，1.8 MB，#3f2a…；原样写回即保留原图）`, not its data URL. Written back unchanged into the same resume, for example inside a whole `/data/basics`, it keeps the photo; to change the photo, write a PNG, JPEG or WebP data URL.
+
+`import` takes the same `--inspect`, `--images` and `--max-pages` as `patch`. A data file with a top-level `appearance` (a complete one, as `get` returns it) sets the look in the same write.
 
 ## Page target and appearance
 
@@ -18,13 +22,13 @@ A page count is a target only when the user gives one; two pages are normal afte
 
 ## The resume's own stylesheet
 
-`/appearance/css` holds CSS for the skeleton classes and variables a theme uses ([making a theme](themes.md)). It applies to this resume's pages only, after the theme's rules, and stays when the theme changes. The limits of a theme's CSS apply (nothing loaded, at most 20 KB), and a stylesheet that breaks them is rejected; `lulicv validate` warns about unknown classes or variables and hard-coded colours. The editor only tells the user that the resume has one and lets them remove it; it does not show or edit the CSS. Remove it with `{"op": "remove", "path": "/appearance/css"}`.
+`/appearance/css` holds CSS for the skeleton classes and variables a theme uses ([making a theme](themes.md)). It applies to this resume's pages only, after the theme's rules, and stays when the theme changes. The limits of a theme's CSS apply (nothing loaded, at most 20 KB), and a stylesheet that breaks them is rejected; `lulicv validate` warns about unknown classes or variables and about saturated colours written as hex (`#c03030`; greys and black are fine): use `var(--rs-accent)` there so they follow the preset. The editor only tells the user that the resume has one and lets them remove it; it does not show or edit the CSS. Remove it with `{"op": "remove", "path": "/appearance/css"}`.
 
 How it meets the theme:
 
 - It wins over a theme rule with the same selector. A theme rule tied to a setting (`&.rs-set-header-center .rs-name`) or an element (`a.rs-contact`) is more specific; repeat that part in yours to override it.
 - Themes and their settings lay out the same parts differently: 标准, 简约, 商务 and 时间线 put contacts in a wrapping row, 编辑 lists them in a column, and 标准's centred header centres them. A rule that relies on one layout can break another, so nest it under the theme and setting it was written for. To read what a theme does, `lulicv theme new <id> --from <theme> --output <directory>` copies its `theme.css` without installing anything.
-- Each printable unit (section title, entry header, paragraph, bullet) sits in its own wrapper for pagination. Sibling selectors such as `.rs-bullet + .rs-bullet` therefore match nothing, and a rule reaches every element of its class. The wrappers' attributes (`data-block-id` and the like) are internal to pagination and change between versions, so a rule that targets them can stop working; the classes and variables in [making a theme](themes.md) are the supported surface.
+- Each printable unit (section title, entry header, paragraph, bullet) sits in its own wrapper for pagination. Sibling selectors such as `.rs-bullet + .rs-bullet` therefore match nothing, and a rule reaches every element of its class. The wrappers' attributes (`data-block-id` and the like) are internal to pagination and change between versions, so a rule that targets them can stop working; the classes and variables in [making a theme](themes.md) are the supported surface. To tell entries apart by what they contain, use `:has()` on those classes: `.rs-entry-head:has(.rs-entry-subtitle) .rs-entry-title` reaches only entries with a subtitle.
 
 For example, each link on its own line in 标准 with the left-aligned header (编辑 already lists one per line):
 
@@ -38,7 +42,7 @@ Bullets further apart, in any theme: `.rs-bullet { padding-bottom: 4pt; }`. Look
 
 `lulicv patch … --inspect --max-pages <N> --images <directory>` lays out the revision it wrote. For an existing revision use `lulicv inspect <id> [--revision <N>] --max-pages <N> --images <directory>` (MCP `inspect_resume_layout`). The report names the revision it laid out, which is the one to export.
 
-Read `layoutValid`, the page constraint and `pageFill` (the share of each page used), and look at the page images yourself. A last page under about 30% full usually means tightening spacing and wording to drop it, or loosening spacing to fill it, within the ranges `lulicv themes` gives. When only cutting content would meet the target, propose the cut rather than make it.
+Read `layoutValid`, the page constraint and `pageFill` (the share of each page the content takes), and look at the page images yourself. A last page under about 30% full usually means tightening spacing and wording to drop it, or loosening spacing to fill it, within the ranges `lulicv themes` gives. From three pages on, when the last page would hold more than about 30%, the content is shared evenly across the pages and each page's spare height is spread between its blocks, so the images look fuller than `pageFill`; a last page under 30% stays as it is. Leave some room on a full page, `pageFill` about 0.97 or less: a page filled to the edge can gain a page from a one-line edit, and the layout after it looks very different. When only cutting content would meet the target, propose the cut rather than make it.
 
 `lulicv validate <id>` lists problems, each with its place, the quoted text and the data path. They include Chinese typesetting conventions: clear mistakes (half-width punctuation between Chinese characters, full-width letters or digits, repeated punctuation) and mixed styles within one resume (brackets, quotation marks, date formats), where the majority style counts as the user's choice. Fix them in text you write or edit. In the user's own wording, list them and ask before changing anything.
 

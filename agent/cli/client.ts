@@ -4,6 +4,20 @@ import { readFile, open } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { clearStaleLock } from '../bridge/workspace';
+import { PRIVACY_NOTICE } from '../../src/core/privacy';
+
+/**
+ * A list has no room for the `privacy` an object response carries, so the Bridge says it in a header; the list is
+ * given back beside it, as `{ privacy, resumes }`, so an agent reading the list knows whether its values are real.
+ */
+export function privacyOf(response: Response) {
+  const mode = response.headers.get('x-resume-privacy');
+  return mode === 'on'
+    ? { privacy: { mode: true, notice: PRIVACY_NOTICE } }
+    : mode === 'off'
+      ? { privacy: { mode: false } }
+      : {};
+}
 
 export async function workspaceIdAt(root: string): Promise<string> {
   const manifest = JSON.parse(await readFile(path.join(root, 'lulicv.json'), 'utf8'));

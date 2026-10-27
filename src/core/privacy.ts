@@ -75,6 +75,9 @@ export const defaultPrivacy: PrivacySettings = {
 export const PRIVACY_NOTICE =
   '隐私模式已开启：{{private:…}} 是隐私占位，导出 PDF 时换成用户在「隐私信息」里填写的内容。占位可以保留、删除、挪动或复制，不要尝试还原，也不要向用户索要真实值写进简历；网页和预览只含占位，可以查看和截图，用户正在「填写」隐私信息时除外；不要读或截图导出的 PDF，看分页用 inspect --images（隐私处已用字段名遮挡）；导出 PDF 时用户在网页里批准，PDF 下载到用户的浏览器，你只会收到页数';
 
+export const PRIVACY_OFF_NOTICE =
+  '用户在网页里关闭了隐私模式：从这次起读到的姓名、电话等都是真实信息，不再有 {{private:…}} 占位，导出 PDF 也不用再等用户批准。照常编辑，不要再按隐私模式处理';
+
 export function normalizePrivacy(value: unknown): PrivacySettings {
   const fail = (message: string): never => {
     throw new ResumeError('VALIDATION_FAILED', message);

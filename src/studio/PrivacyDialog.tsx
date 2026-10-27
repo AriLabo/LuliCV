@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type InputHTMLAttributes } from 'react';
 import { LINK_LIMITS } from '../core/limits';
 import {
   privateFieldOptions,
@@ -16,8 +16,7 @@ import { useStudioStore } from './store';
 /*
  * 隐私信息: which fields privacy mode keeps out of the resumes, and their values. Values are write-only here: the page
  * learns only whether one is filled and how long it is, and 重新填写 starts from an empty input. What the user types is
- * drawn as dots until they click 显示, so a screenshot taken meanwhile shows nothing. A CSS mask rather than
- * type="password", which would make password managers offer to save the value.
+ * drawn as dots until they click 显示, so a screenshot taken meanwhile shows nothing (see MaskedInput).
  */
 
 export type PrivacyDialogEntry = 'vault' | 'enable';
@@ -48,6 +47,42 @@ function filledText(info?: PrivateValueInfo, photo = false) {
   if (info.length === undefined || !info.shape) return '已上传';
   const unit = info.shape.digit === info.length ? '位' : info.shape.han === info.length ? '个字' : '个字符';
   return `已填写 · ${info.length} ${unit}`;
+}
+
+/*
+ * A text input whose characters are painted as dots. Not type="password", which would make password managers offer to
+ * save the value, and not -webkit-text-security either: browsers treat both as password fields, and macOS then turns
+ * off input methods, so a Chinese name could not be typed. The input keeps its text, transparent, with its own caret and
+ * selection; a layer behind it lays out the same characters, invisible, each with a dot in the middle, so the dots sit
+ * under the caret. The layer's characters are generated content, out of the page text, and the layer is aria-hidden.
+ */
+function MaskedInput({
+  masked,
+  value,
+  ...props
+}: { masked: boolean; value: string } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value'>) {
+  const input = useRef<HTMLInputElement>(null);
+  const dots = useRef<HTMLSpanElement>(null);
+  const follow = () => {
+    if (input.current && dots.current) dots.current.style.transform = `translateX(${-input.current.scrollLeft}px)`;
+  };
+  useEffect(() => {
+    requestAnimationFrame(follow);
+  });
+  return (
+    <span className={masked ? 'masked-input is-masked' : 'masked-input'}>
+      {masked && (
+        <span className="masked-input__dots" aria-hidden="true">
+          <span ref={dots}>
+            {Array.from(value, (character, index) => (
+              <span key={index} data-character={character} />
+            ))}
+          </span>
+        </span>
+      )}
+      <input ref={input} value={value} onScroll={follow} onSelect={follow} {...props} />
+    </span>
+  );
 }
 
 /** One stored value: its state, and an empty input to replace it. */
@@ -133,9 +168,9 @@ function ValueRow({
         }}
       >
         <span className="privacy-value__field">
-          <input
+          <MaskedInput
             aria-label={`填写${name}`}
-            className={shown ? undefined : 'is-masked'}
+            masked={!shown}
             value={text}
             maxLength={valueKey.startsWith('link:') ? LINK_LIMITS.url : undefined}
             autoFocus

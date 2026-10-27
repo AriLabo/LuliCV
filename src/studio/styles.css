@@ -1983,7 +1983,12 @@ input[type='range'] {
 .resume-measure .a4-page {
   box-shadow: none;
 }
+/*
+ * Chromium draws positioned and translucent elements after the rest of the page, and the PDF text layer follows that
+ * drawing order. Positioning every block keeps the text in reading order for parsers that read the text stream.
+ */
 .resume-block {
+  position: relative;
   break-inside: avoid;
 }
 /* Skeleton defaults (engine 1). :where() keeps them at zero specificity so any theme rule wins. */
@@ -2013,7 +2018,7 @@ input[type='range'] {
 }
 :where(.rs-theme .rs-detail + .rs-detail)::before {
   margin: 0 0.5em;
-  opacity: 0.4;
+  color: color-mix(in srgb, currentColor 40%, transparent);
   content: '|';
 }
 :where(.rs-theme .rs-detail-label) {
@@ -2460,18 +2465,44 @@ input[type='range'] {
   border-color: #8ea2c6;
   box-shadow: var(--ring);
 }
-.privacy-value__field input {
+.masked-input {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+  font-size: 13px;
+}
+.masked-input input {
+  position: relative;
   min-width: 0;
   height: 100%;
   flex: 1;
   border: 0;
   padding: 0;
   background: none;
-  font-size: 13px;
+  font-size: inherit;
   outline: 0;
 }
-.privacy-value__field input.is-masked {
-  -webkit-text-security: disc;
+.masked-input.is-masked input {
+  color: transparent;
+  caret-color: var(--ink);
+}
+.masked-input__dots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  white-space: pre;
+  pointer-events: none;
+}
+.masked-input__dots [data-character] {
+  background: radial-gradient(circle, var(--ink) 2.5px, transparent 3px);
+}
+.masked-input__dots [data-character]::before {
+  color: transparent;
+  content: attr(data-character);
 }
 .privacy-value--editing > button {
   height: 30px;

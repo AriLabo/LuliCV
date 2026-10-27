@@ -79,7 +79,10 @@ it('CLI uses the existing bridge, emits JSON and exits 2 on stale revision', asy
     expect(
       (await fetch(bridge.origin + '/api/session', { method: 'POST', headers: { 'X-Resume-Preview': ticket } })).status,
     ).toBe(200);
-    expect(JSON.parse((await run('list')).stdout)).toHaveLength(1);
+    // The list says whether privacy mode is on beside the resumes, as other responses do in their own `privacy`.
+    const listed = JSON.parse((await run('list')).stdout);
+    expect(listed.privacy).toEqual({ mode: false });
+    expect(listed.resumes).toHaveLength(1);
     const patch = path.join(root, 'patch.json');
     await writeFile(
       patch,
@@ -179,15 +182,23 @@ it('CLI uses the existing bridge, emits JSON and exits 2 on stale revision', asy
       changes: expect.arrayContaining(['基本信息 · 电话', '投递目标']),
     });
     await expect(run('delete', copy.id, '--revision', '1')).rejects.toMatchObject({ code: 2 });
-    expect(JSON.parse((await run('delete', copy.id, '--revision', '2')).stdout)).toEqual({ deleted: true });
-    expect(JSON.parse((await run('list')).stdout)).toHaveLength(1);
+    expect(JSON.parse((await run('delete', copy.id, '--revision', '2')).stdout)).toEqual({
+      deleted: true,
+      privacy: { mode: false },
+    });
+    expect(JSON.parse((await run('list')).stdout).resumes).toHaveLength(1);
     // As in the editor, the last one can go too; the workspace is then empty and works as before.
-    expect(JSON.parse((await run('delete', document.id, '--revision', '2')).stdout)).toEqual({ deleted: true });
-    expect(JSON.parse((await run('list')).stdout)).toEqual([]);
+    expect(JSON.parse((await run('delete', document.id, '--revision', '2')).stdout)).toEqual({
+      deleted: true,
+      privacy: { mode: false },
+    });
+    expect(JSON.parse((await run('list')).stdout)).toEqual({ privacy: { mode: false }, resumes: [] });
     expect(JSON.parse((await run('preview', '--no-open')).stdout)).toMatchObject({ url: expect.any(String) });
     const sample = JSON.parse((await run('import', '--sample', '--mutation-id', 'cli-sample', '--quiet')).stdout);
     expect(sample).toMatchObject({ name: '内容运营', revision: 1, sample: true, warnings: [] });
-    expect(JSON.parse((await run('list')).stdout)).toEqual([expect.objectContaining({ id: sample.id, sample: true })]);
+    expect(JSON.parse((await run('list', '--quiet')).stdout).resumes).toEqual([
+      expect.objectContaining({ id: sample.id, sample: true }),
+    ]);
     expect(JSON.parse((await run('validate', sample.id)).stdout)).toMatchObject({ errors: [] });
     await expect(run('import', '--sample', '--file', patch, '--mutation-id', 'cli-both')).rejects.toMatchObject({
       code: 1,
@@ -463,7 +474,7 @@ it('theme new, check, install, themes and remove work as one loop', async () => 
     await rm(root, { recursive: true, force: true });
   }
 });
-it('CLI and MCP exports in privacy mode wait for the person and return only the page count', async () => {
+it('CLI import takes appearance and --inspect; exports say when they are older than the resume; privacy exports wait for the person', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'resume-cli-privacy-'));
   await initializeWorkspace(root);
   const dist = path.join(root, 'web');
@@ -518,7 +529,42 @@ it('CLI and MCP exports in privacy mode wait for the person and return only the 
       return { error: !!response.isError, ...(response.structuredContent as Record<string, unknown>) };
     };
     expect(await call({ id: document.id, revision: 1 })).toMatchObject({ error: true, message: '需要 filename' });
+    // import takes a file with a top-level appearance, as import_resume does, and can check the layout in the same step.
+    const file = path.join(root, 'import.json');
+    const appearance = { ...document.appearance, layout: { ...document.appearance.layout, accentColor: '#336699' } };
+    await writeFile(file, JSON.stringify({ ...document.data, appearance }));
+    const run = (...args: string[]) => execute(process.execPath, [cli, ...args, '--workspace', root]);
+    const imported = JSON.parse((await run('import', '--file', file, '--mutation-id', 'cli-look', '--inspect')).stdout);
+    expect(imported).toMatchObject({ document: { appearance }, layout: { pageCount: 2 } });
+    const quiet = JSON.parse(
+      (await run('import', '--file', file, '--mutation-id', 'cli-look-quiet', '--quiet', '--inspect')).stdout,
+    );
+    expect(quiet).toMatchObject({ revision: 1, privacy: { mode: false }, layout: { pageCount: 2 } });
+    expect(quiet).not.toHaveProperty('data');
+    expect((await bridge.service.get(quiet.id)).appearance).toEqual(appearance);
+    // A PDF of an older revision says the resume has moved on since.
+    await bridgeRequest(bridge.runtime, `/api/resumes/${document.id}`, 'PATCH', {
+      baseRevision: 1,
+      mutationId: 'cli-newer',
+      operations: [{ op: 'replace', path: '/name', value: '改过的名字' }],
+    });
+    const older = { latestRevision: 2, note: expect.stringContaining('导出的是第 1 版') };
+    expect(
+      JSON.parse((await run('export', document.id, '--revision', '1', '--output', path.join(root, 'old.pdf'))).stdout),
+    ).toMatchObject({ revision: 1, ...older });
+    expect(
+      JSON.parse((await run('export', document.id, '--revision', '2', '--output', path.join(root, 'new.pdf'))).stdout),
+    ).not.toHaveProperty('latestRevision');
+    expect(await call({ id: document.id, revision: 1, filename: 'old-mcp.pdf' })).toMatchObject({
+      error: false,
+      revision: 1,
+      ...older,
+    });
     await bridgeRequest(bridge.runtime, '/api/privacy', 'PUT', { enabled: true, fields: ['name'] });
+    expect(JSON.parse((await run('list', '--quiet')).stdout).privacy).toMatchObject({
+      mode: true,
+      notice: expect.any(String),
+    });
     const { revision } = await bridge.service.get(document.id);
     // The person, in the web page: answers the next request that shows up.
     const cookie = await browserCookie(bridge.runtime);

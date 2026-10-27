@@ -1,6 +1,6 @@
 {
   "name": "@arilabo/lulicv",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "供 AI Agent 使用的本地简历编辑工具：Skill、CLI 和网页编辑器",
   "author": "AriLabo",
   "license": "MIT",

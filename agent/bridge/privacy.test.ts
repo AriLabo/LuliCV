@@ -7,6 +7,7 @@ import { startBridge, type Redaction } from './server';
 import { bridgeRequest } from '../cli/client';
 import { browserCookie } from './testing';
 import { cloneSample } from '../../src/core/fixtures';
+import { PRIVACY_OFF_NOTICE } from '../../src/core/privacy';
 import type { ResumeDocument } from '../../src/core/types';
 
 // Fictitious values: the sample resume's own, an older phone number, and a link added below.
@@ -393,10 +394,12 @@ it('keeps the values with the person: agents cannot read, change, export or turn
     expect(await browser('/api/privacy', 'PUT', { enabled: false, fields: ['name'] })).toMatchObject({
       enabled: false,
     });
+    // The first agent read after the person turns it off says so; later ones still carry the mode.
     expect(await agent(`/api/resumes/${id}`)).toMatchObject({
       data: { basics: { name: '张三', phone: '13911112222', email: 'example@example.com' } },
+      privacy: { mode: false, notice: PRIVACY_OFF_NOTICE },
     });
-    expect((await agent(`/api/resumes/${id}`)).privacy).toBeUndefined();
+    expect((await agent(`/api/resumes/${id}`)).privacy).toEqual({ mode: false });
   } finally {
     await bridge.close();
     await rm(root, { recursive: true, force: true });

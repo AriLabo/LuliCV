@@ -19,6 +19,7 @@ import {
   editorStatus,
   ensureBridge,
   OPEN_EDITOR,
+  privacyOf,
   runtimeAt,
   type ExportApproval,
 } from './client';
@@ -34,8 +35,20 @@ import { WorkspaceRenderer } from '../renderer/renderer';
 import { ThemeStore } from '../bridge/themes';
 import { applyTheme, checkTheme, installTheme, newTheme, removeTheme, themeHelp } from './theme';
 
-// Agents only need identity and revision after a write; full documents can be thousands of characters.
-function summary({ id, name, revision, updatedAt, target, source, parentId, purpose, sample }: ResumeDocument) {
+// Agents only need identity and revision after a write; full documents can be thousands of characters. Whether
+// privacy mode is on stays, so an agent reading only summaries still knows.
+function summary({
+  id,
+  name,
+  revision,
+  updatedAt,
+  target,
+  source,
+  parentId,
+  purpose,
+  sample,
+  privacy,
+}: ResumeDocument & { privacy?: unknown }) {
   return {
     id,
     name,
@@ -46,6 +59,7 @@ function summary({ id, name, revision, updatedAt, target, source, parentId, purp
     ...(sample ? { sample } : {}),
     ...(target ? { target: { company: target.company, role: target.role } } : {}),
     ...(source ? { source } : {}),
+    ...(privacy ? { privacy } : {}),
   };
 }
 async function readStdin() {
@@ -54,7 +68,7 @@ async function readStdin() {
   return Buffer.concat(chunks).toString('utf8');
 }
 const help =
-  'lulicv version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | restore <id> --to N --revision M（把 rN 的内容恢复成最新版本，M 是最近读取到的 revision；之后的版本留在修改记录里） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
+  'lulicv version | doctor | setup | themes | schema | import --file FILE --mutation-id ID [--name NAME] [--inspect [--images DIR] [--max-pages N]]（FILE 是 ResumeData，可带顶层 appearance） | import --sample --mutation-id ID [--name NAME]（内置的虚构示例简历，供试用） | workspace [<directory>]（查看或改用工作区位置） | preview [--open]（返回编辑器的一次性链接；--open 同时用系统浏览器打开） | list | tree | get <id> [--revision N] | history <id> | duplicate <id> --mutation-id ID [--revision N] [--parent ID] | diff <id> --source | diff <id> --against <id> | diff <id> --from N [--to N] | patch <id> --file patch.json（- 表示标准输入） [--inspect [--images DIR] [--max-pages N]] | validate <id> | inspect <id> [--revision N] [--max-pages N] [--images DIR] | export <id> --revision N --output file.pdf（隐私模式下等用户在网页批准，PDF 下载到用户浏览器，不需要 --output） | restore <id> --to N --revision M（把 rN 的内容恢复成最新版本，M 是最近读取到的 revision；之后的版本留在修改记录里） | delete <id> --revision N | backup --output file.db | restore-workspace --file file.db | privacy [on [--fields name,phone,…]] | stop | unlock | ' +
   themeHelp +
   '\nlist / import / duplicate / patch / restore 加 --quiet 只输出 id、名称、revision 等摘要，get 加 --quiet 省略 JD 原文';
 // Flags each command accepts beyond --workspace / --help; anything else is an error rather than silently ignored.
@@ -72,7 +86,7 @@ const commandFlags: Record<string, string[]> = {
   stop: [],
   tree: [],
   validate: [],
-  import: ['file', 'sample', 'mutation-id', 'name', 'quiet'],
+  import: ['file', 'sample', 'mutation-id', 'name', 'quiet', 'inspect', 'images', 'max-pages'],
   preview: ['port', 'open', 'no-open'],
   serve: ['port'],
   list: ['quiet'],
@@ -130,6 +144,16 @@ async function inspectRevision(
     images,
     ...(privacy ? { privacy } : {}),
   };
+}
+/** A PDF of an older revision than the resume's latest, said in the result so it is not handed over as current. */
+function newerRevision(revision: number, response: Response) {
+  const latest = Number(response.headers.get('x-resume-latest-revision'));
+  return latest > revision
+    ? {
+        latestRevision: latest,
+        note: `导出的是第 ${revision} 版，这份简历之后又改过，现在是第 ${latest} 版；交付前确认用户要的是哪一版`,
+      }
+    : {};
 }
 /** Content differences between two resumes, labelled against the first: what `mine` changed relative to `other`. */
 function compareContent(mine: ResumeDocument, other: ResumeDocument) {
@@ -440,21 +464,28 @@ async function main() {
   if (command === 'import') {
     if (!values['mutation-id'] || !values.file === !values.sample)
       throw new ResumeError('VALIDATION_FAILED', 'import 需要 --mutation-id，以及 --file 或 --sample 其中之一');
-    const result = await (
+    // The file is ResumeData; an appearance beside its fields sets the theme and spacing in the same write.
+    const file = values.file ? JSON.parse(await readFile(values.file, 'utf8')) : undefined;
+    const { appearance, ...data } = file && typeof file === 'object' && !Array.isArray(file) ? file : {};
+    const result = (await (
       await bridgeRequest(runtime, '/api/import-resume', 'POST', {
-        ...(values.sample ? { sample: true } : { data: JSON.parse(await readFile(values.file!, 'utf8')) }),
+        ...(values.sample
+          ? { sample: true }
+          : { data: file && typeof file === 'object' && !Array.isArray(file) ? data : file }),
+        ...(appearance === undefined ? {} : { appearance }),
         mutationId: values['mutation-id'],
         ...(values.name === undefined ? {} : { name: values.name }),
       })
-    ).json();
+    ).json()) as { document: ResumeDocument; warnings: string[]; privacy?: unknown };
+    const { document } = result;
     process.stdout.write(
       JSON.stringify({
         ...(values.quiet
-          ? {
-              ...summary((result as { document: ResumeDocument }).document),
-              warnings: (result as { warnings: string[] }).warnings,
-            }
+          ? { ...summary({ ...document, privacy: result.privacy }), warnings: result.warnings }
           : result),
+        ...(values.inspect
+          ? { layout: await inspectRevision(runtime, root, document.id, document.revision, values) }
+          : {}),
         editor: await editorStatus(runtime),
       }) + '\n',
     );
@@ -505,8 +536,11 @@ async function main() {
     return;
   }
   if (command === 'list') {
-    const documents = (await (await bridgeRequest(runtime, '/api/resumes')).json()) as ResumeDocument[];
-    process.stdout.write(JSON.stringify(values.quiet ? documents.map(summary) : documents) + '\n');
+    const response = await bridgeRequest(runtime, '/api/resumes');
+    const documents = (await response.json()) as ResumeDocument[];
+    process.stdout.write(
+      JSON.stringify({ ...privacyOf(response), resumes: values.quiet ? documents.map(summary) : documents }) + '\n',
+    );
     return;
   }
   if (!argument || !/^[a-zA-Z0-9_-]{1,128}$/.test(argument))
@@ -696,7 +730,9 @@ async function main() {
     }
     if (command === 'export') {
       const output = await writeOutput(root, values.output!, Buffer.from(await response.arrayBuffer()));
-      process.stdout.write(JSON.stringify({ id: argument, revision, output }) + '\n');
+      process.stdout.write(
+        JSON.stringify({ id: argument, revision, output, ...newerRevision(revision, response) }) + '\n',
+      );
       return;
     }
   } else throw new ResumeError('VALIDATION_FAILED', help);

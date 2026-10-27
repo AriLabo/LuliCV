@@ -14,6 +14,15 @@ export interface PageAllocation {
   continuationBlockId?: string;
 }
 
+/** A last page holding less than this share of a page is overflow to take back, not a page of its own. */
+export const SPARSE_LAST_PAGE = 0.3;
+
+export interface PageLayout {
+  pages: PageAllocation[];
+  /** Three or more pages that spread their spare height between blocks (page-wrap--balanced-flow). */
+  spread: boolean;
+}
+
 /*
  * Breaking rules for every entry, the same for the whole document: a group (an entry, or the rows of a skills
  * section) never leaves its first or last content block alone on a page. The entry header already travels with
@@ -122,12 +131,15 @@ function balanceAllocations(
   }));
 }
 
-export function allocatePages(
-  measured: MeasuredBlock[],
-  firstCapacity: number,
-  pageCapacity: number,
-): PageAllocation[] {
-  if (!measured.length) return [{ blockIds: [] }];
+function lastPageShare(blocks: MeasuredBlock[], pages: PageAllocation[], pageCapacity: number): number {
+  const byId = new Map(blocks.map((block) => [block.id, block]));
+  const last = pages.at(-1)!;
+  const continuation = last.continuationBlockId ? (byId.get(last.continuationBlockId)?.continuationHeight ?? 0) : 0;
+  return last.blockIds.reduce((sum, id) => sum + (byId.get(id)?.height ?? 0), continuation) / pageCapacity;
+}
+
+export function layoutPages(measured: MeasuredBlock[], firstCapacity: number, pageCapacity: number): PageLayout {
+  if (!measured.length) return { pages: [{ blockIds: [] }], spread: false };
   const blocks = withGroupRules(measured, pageCapacity);
   const pages: PageAllocation[] = [{ blockIds: [] }];
   let pageIndex = 0;
@@ -165,7 +177,21 @@ export function allocatePages(
     index += 1;
   }
   const compactPages = pages.filter((page, indexOfPage) => page.blockIds.length > 0 || indexOfPage === 0);
-  return balanceAllocations(blocks, compactPages, firstCapacity, pageCapacity);
+  /*
+   * A few lines past the last full page stay a short last page. Balancing and spreading would loosen every page over
+   * one line of overflow, and hide the overflow that a little tightening takes back.
+   */
+  if (compactPages.length < 3 || lastPageShare(blocks, compactPages, pageCapacity) < SPARSE_LAST_PAGE)
+    return { pages: compactPages, spread: false };
+  return { pages: balanceAllocations(blocks, compactPages, firstCapacity, pageCapacity), spread: true };
+}
+
+export function allocatePages(
+  measured: MeasuredBlock[],
+  firstCapacity: number,
+  pageCapacity: number,
+): PageAllocation[] {
+  return layoutPages(measured, firstCapacity, pageCapacity).pages;
 }
 
 export function toMeasuredBlocks(
